@@ -8,7 +8,7 @@
 
 *两个并行的 Claude Code 代理同时在 Telegram 中构建 X 克隆和 Instagram 克隆。*
 
-**[🌐 Back to Bilingual README](README.md)** · **[English Guide](README_EN.md)**
+**[🌐 English](README.md)**
 
 </div>
 
