@@ -1,0 +1,347 @@
+# OpenClaw Claude Code Plugin (中文)
+
+通过 Telegram、Discord 等聊天频道，远程控制 Claude Code 执行开发任务。
+
+<div align="center">
+
+[![Demo Video](https://img.youtube.com/vi/vbX1Y0Nx4Tc/maxresdefault.jpg)](https://youtube.com/shorts/vbX1Y0Nx4Tc)
+
+*两个并行的 Claude Code 代理同时在 Telegram 中构建 X 克隆和 Instagram 克隆。*
+
+**[🌐 Back to Bilingual README](README.md)** · **[English Guide](README_EN.md)**
+
+</div>
+
+---
+
+## 🚀 快速开始（5 分钟上手）
+
+### 第 1 步：安装插件
+
+```bash
+openclaw plugins install @betrue/openclaw-claude-code-plugin
+openclaw gateway restart
+```
+
+### 第 2 步：配置通知
+
+编辑 `~/.openclaw/openclaw.json`：
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "openclaw-claude-code-plugin": {
+        "enabled": true,
+        "config": {
+          "fallbackChannel": "telegram|your-bot|your-chat-id",
+          "maxSessions": 5
+        }
+      }
+    }
+  }
+}
+```
+
+重启 Gateway：
+```bash
+openclaw gateway restart
+```
+
+### 第 3 步：启动第一个会话
+
+在 Telegram 中发送：
+```
+/claude 创建一个 hello world 程序
+```
+
+---
+
+## 📖 完整文档
+
+| 文档 | 描述 |
+|------|------|
+| **[用户使用指南 📘](docs/USER_GUIDE_CN.md)** | 快速上手、命令详解、常见场景、故障排除 |
+| [API 文档](docs/API.md) | 工具、命令和 RPC 方法完整参数表 |
+| [架构文档](docs/ARCHITECTURE.md) | 架构概览和组件说明 |
+| [开发指南](docs/DEVELOPMENT.md) | 开发者文档 |
+
+---
+
+## ⚡ 快速使用示例
+
+### 启动会话
+
+```bash
+/claude 修复登录页面的 bug
+
+/claude --name fix-auth 修复认证问题
+```
+
+### 查看会话
+
+```bash
+/claude_sessions                    # 列出所有会话
+/claude_output fix-auth               # 查看会话输出
+```
+
+### 与会话交互
+
+```bash
+/claude_respond fix-auth 添加单元测试
+
+/claude_respond --interrupt fix-auth 停下！用另一个方案
+```
+
+### 实时监控
+
+```bash
+/claude_fg fix-auth                   # 实时查看输出
+/claude_bg                            # 停止实时查看
+```
+
+### 会话生命周期
+
+```bash
+/claude_kill fix-auth                   # 终止会话
+/claude_resume fix-auth 继续优化         # 恢复会话
+/claude_resume --fork fix-auth 尝试不同方案  # Fork 会话
+```
+
+---
+
+## ✨ 功能特性
+
+- **多会话管理** - 并发运行多个会话，每个都有唯一 ID 和可读名称
+- **前台/后台模式** - 默认后台运行；可将任何会话带到前台实时流式输出
+- **实时通知** - 在完成、失败或 Claude 提问时收到通知
+- **多轮对话** - 发送后续消息、中断或迭代运行中的代理
+- **会话恢复和分支** - 恢复任何已完成的会话或分支到新对话
+- **4 项启动前安全检查** - 自主技能、心跳配置、HEARTBEAT.md、频道映射
+- **多代理支持** - 通过基于工作区的频道映射路由通知
+- **自动清理** - 完成的会话在 1 小时后垃圾回收；ID 保持可用于恢复
+
+---
+
+## 🔧 配置选项
+
+在 `~/.openclaw/openclaw.json` 的 `plugins.entries["openclaw-claude-code-plugin"].config` 下设置值。
+
+| 选项 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| `agentChannels` | `object` | — | 工作目录路径 → 通知频道的映射 |
+| `fallbackChannel` | `string` | — | 默认通知频道 |
+| `maxSessions` | `number` | `5` | 最大并发会话数 |
+| `maxAutoResponds` | `number` | `10` | 连续自动响应前的最大次数 |
+| `defaultBudgetUsd` | `number` | `5` | 每个会话的默认预算（美元） |
+| `permissionMode` | `string` | `"bypassPermissions"` | 权限模式 |
+| `skipSafetyChecks` | `boolean` | `false` | 跳过所有启动前安全守卫（仅用于开发/测试） |
+
+### 配置示例
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "openclaw-claude-code-plugin": {
+        "enabled": true,
+        "config": {
+          "maxSessions": 3,
+          "defaultBudgetUsd": 10,
+          "defaultModel": "sonnet",
+          "permissionMode": "bypassPermissions",
+          "fallbackChannel": "telegram|main-bot|123456789",
+          "agentChannels": {
+            "/home/user/agent-seo": "telegram|seo-bot|123456789",
+            "/home/user/agent-main": "telegram|main-bot|123456789"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+## 📋 所有命令
+
+| 命令 | 描述 |
+|------|------|
+| `/claude` | 启动新的 Claude Code 会话 |
+| `/claude_sessions` | 列出所有会话 |
+| `/claude_respond` | 向运行中的会话发送后续消息 |
+| `/claude_fg` | 将会话带到前台（实时流式输出） |
+| `/claude_bg` | 将会话发送到后台（停止流式传输） |
+| `/claude_kill` | 终止运行中的会话 |
+| `/claude_output` | 读取会话的缓冲输出 |
+| `/claude_resume` | 恢复之前的会话或分支到新对话 |
+| `/claude_stats` | 显示使用指标（次数、时长、成本） |
+
+所有工具也可用作**聊天命令**（`/claude`、`/claude_fg` 等），大多数也可用作 **网关 RPC 方法**。
+
+> 完整参数表和响应模式：[docs/API.md](docs/API.md)
+
+---
+
+## 🔔 通知说明
+
+插件会根据会话生命周期事件发送实时通知：
+
+| 图标 | 事件 | 描述 |
+|------|------|------|
+| ↩️ | Launched | 会话成功启动 |
+| 🔔 | Claude asks | 会话正在等待用户输入 — 包含输出预览 |
+| ↩️ | Responded | 后续消息已发送到会话 |
+| ✅ | Completed | 会话成功完成 |
+| ❌ | Failed | 会话遇到错误 |
+| ⛔ | Killed | 会话被手动终止 |
+
+前台会话实时流式传输完整输出。后台会话仅发送生命周期通知。
+
+> 通知架构和传递模型：[docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)
+
+---
+
+## 💪 最佳实践
+
+### 1. 给会话起有意义的名字
+
+```
+✅ 好的命名:
+/claude --name fix-auth-bug 修复认证
+/claude --name add-user-profile 添加用户资料
+
+❌ 避免:
+/claude --name task1 修复认证
+/claude --name test 添加功能
+```
+
+### 2. 明确描述任务
+
+```
+✅ 好的描述:
+/claude 在 src/auth.ts 的 login 函数中添加空值检查
+
+❌ 模糊描述:
+/claude 修复 bug
+```
+
+### 3. 合理设置预算
+
+```
+小任务（1-2分钟）: 预算约 $0.01-0.05
+中等任务（5-10分钟）: 预算约 $0.5-2
+大任务（30分钟+）: 预算 $5-10+
+```
+
+### 4. 使用前台模式监控重要任务
+
+```
+/claude --name deploy-api 部署 API 到生产环境
+/claude_fg deploy-api    # 实时监控
+/claude_bg              # 停止监控
+```
+
+### 5. 及时清理完成的会话
+
+```
+/claude_sessions         # 查看会话
+/claude_kill old-session # 终止不需要的会话
+```
+
+---
+
+## 🐛 故障排除
+
+### 问题 1：命令没有反应
+
+**原因：** Gateway 没有运行
+
+**解决：**
+```bash
+openclaw gateway restart
+```
+
+---
+
+### 问题 2："SessionManager not initialized" 错误
+
+**原因：** 插件服务未启动
+
+**解决：**
+```bash
+openclaw gateway status
+openclaw gateway restart
+```
+
+---
+
+### 问题 3：会话一直卡在 "starting"
+
+**原因：** Claude Code CLI 未安装
+
+**解决：**
+```bash
+which claude
+npm install -g @anthropic-ai/claude-code
+```
+
+---
+
+### 问题 4：没有收到通知
+
+**原因：** `fallbackChannel` 配置错误
+
+**解决：**
+1. 获取 Telegram Chat ID（发送消息给 `@userinfobot`）
+2. 更新配置中的 `fallbackChannel`
+3. 重启 Gateway
+
+---
+
+### 问题 5：会话意外终止
+
+**原因：** 预算耗尽或空闲超时
+
+**解决：**
+- 增加预算：`defaultBudgetUsd: 10`
+- 增加超时：`idleTimeoutMinutes: 60`
+
+---
+
+## 📚 更多文档
+
+| 文档 | 描述 |
+|------|------|
+| [docs/getting-started.md](docs/getting-started.md) | 完整设置指南 |
+| [docs/API.md](docs/API.md) | 工具、命令和 RPC 方法 |
+| [docs/safety.md](docs/safety.md) | 安全检查和故障排除 |
+| [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | 通知架构 |
+| [docs/AGENT_CHANNELS.md](docs/AGENT_CHANNELS.md) | 多代理设置 |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构概览 |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 开发指南 |
+
+---
+
+## 🆘 获取帮助
+
+遇到问题？
+
+1. 查看本文档的故障排除部分
+2. 检查 Gateway 日志：`openclaw logs`
+3. 在 GitHub 提 issue：[github.com/alizarion/openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin)
+
+---
+
+## 📄 许可证
+
+MIT — see [package.json](package.json) for details.
+
+---
+
+<div align="center">
+
+**[⬆ 返回双语 README](README.md)**
+
+</div>

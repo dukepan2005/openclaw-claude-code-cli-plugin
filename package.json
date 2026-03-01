@@ -4,7 +4,7 @@
   "type": "commonjs",
   "main": "dist/index.js",
   "scripts": {
-    "build": "esbuild index.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/index.js --minify --external:openclaw --external:openclaw/plugin-sdk --external:@anthropic-ai/claude-agent-sdk",
+    "build": "esbuild index.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/index.js --minify --external:openclaw --external:openclaw/plugin-sdk",
     "test": "tsx tests/session-filter.test.ts"
   },
   "openclaw": {
@@ -18,12 +18,11 @@
     "README.md"
   ],
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "0.2.37"
-  },
-  "devDependencies": {
-    "esbuild": "^0.27.3",
     "@sinclair/typebox": "^0.34.48",
     "nanoid": "^3.3.7"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.3"
   },
   "keywords": [
     "openclaw",

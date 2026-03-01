@@ -1,5 +1,5 @@
 import { execFile, spawn } from "child_process";
-import { Session } from "./session";
+import { Session } from "./session-cli";
 import { generateSessionName } from "./shared";
 import type { NotificationRouter } from "./notifications";
 import type { SessionConfig, SessionStatus } from "./types";
