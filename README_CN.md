@@ -34,7 +34,7 @@ openclaw gateway restart
       "openclaw-claude-code-plugin": {
         "enabled": true,
         "config": {
-          "fallbackChannel": "telegram|your-bot|your-chat-id",
+          "fallbackChannel": "telegram|my-agent-id|your-chat-id",
           "maxSessions": 5
         }
       }
@@ -62,6 +62,7 @@ openclaw gateway restart
 | 文档 | 描述 |
 |------|------|
 | **[用户使用指南 📘](docs/USER_GUIDE_CN.md)** | 快速上手、命令详解、常见场景、故障排除 |
+| **[多代理设置指南 🤖](docs/AGENT_CHANNELS_CN.md)** | agentChannels 和 fallbackChannel 详细配置说明 |
 | [API 文档](docs/API.md) | 工具、命令和 RPC 方法完整参数表 |
 | [架构文档](docs/ARCHITECTURE.md) | 架构概览和组件说明 |
 | [开发指南](docs/DEVELOPMENT.md) | 开发者文档 |
@@ -150,10 +151,10 @@ openclaw gateway restart
           "defaultBudgetUsd": 10,
           "defaultModel": "sonnet",
           "permissionMode": "bypassPermissions",
-          "fallbackChannel": "telegram|main-bot|123456789",
+          "fallbackChannel": "telegram|my-main-agent|123456789",
           "agentChannels": {
-            "/home/user/agent-seo": "telegram|seo-bot|123456789",
-            "/home/user/agent-main": "telegram|main-bot|123456789"
+            "/home/user/agent-seo": "telegram|seo-agent|123456789",
+            "/home/user/agent-main": "telegram|my-main-agent|123456789"
           }
         }
       }
@@ -291,12 +292,55 @@ npm install -g @anthropic-ai/claude-code
 
 ### 问题 4：没有收到通知
 
-**原因：** `fallbackChannel` 配置错误
+**原因：** `fallbackChannel` 或 `agentChannels` 配置错误
 
 **解决：**
-1. 获取 Telegram Chat ID（发送消息给 `@userinfobot`）
-2. 更新配置中的 `fallbackChannel`
-3. 重启 Gateway
+
+**方法一：使用 @userinfobot 获取 Chat ID（推荐）**
+1. 在 Telegram 中搜索 `@userinfobot`
+2. 发送 `/start` 命令
+3. Bot 会返回你的 Chat ID（个人聊天为正数）
+
+**方法二：使用 Bot API 获取 Chat ID**
+1. 向你的 Bot 发送任意消息
+2. 访问：`https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+3. 在返回的 JSON 中找到 `"chat":{"id":123456789}`
+
+**更新配置：**
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "openclaw-claude-code-plugin": {
+        "enabled": true,
+        "config": {
+          "fallbackChannel": "telegram|my-agent-id|123456789",
+          "agentChannels": {
+            "/你的项目路径": "telegram|my-agent-id|123456789"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**频道格式说明：**
+```text
+telegram|OpenClaw代理ID|聊天ID
+```
+
+- **平台**：`telegram` 或 `discord`
+- **OpenClaw 代理 ID**：你在 `openclaw.json → agents.list` 中配置的代理标识符（例如 `seo-bot`），**不是** Telegram bot 用户名（不要加 `@` 符号）
+- **聊天 ID**：
+  - 个人聊天：正数（如 `123456789`）
+  - 群组/频道：负数，以 `-100` 开头（如 `-1009876543210`）
+
+重启 Gateway：
+```bash
+openclaw gateway restart
+```
 
 ---
 
@@ -318,7 +362,8 @@ npm install -g @anthropic-ai/claude-code
 | [docs/API.md](docs/API.md) | 工具、命令和 RPC 方法 |
 | [docs/safety.md](docs/safety.md) | 安全检查和故障排除 |
 | [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | 通知架构 |
-| [docs/AGENT_CHANNELS.md](docs/AGENT_CHANNELS.md) | 多代理设置 |
+| **[docs/AGENT_CHANNELS_CN.md](docs/AGENT_CHANNELS_CN.md)** | 多代理设置和频道配置（中文） |
+| [docs/AGENT_CHANNELS.md](docs/AGENT_CHANNELS.md) | 多代理设置和频道配置（English） |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构概览 |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 开发指南 |
 

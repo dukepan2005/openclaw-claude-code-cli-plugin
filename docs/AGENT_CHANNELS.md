@@ -104,6 +104,28 @@ A session launched in `/home/user/projects/seo-app/backend` matches **both** ent
 
 When the plugin cannot determine the origin channel from the command/tool context (no `ctx.channel`, no `ctx.chatId`, etc.) and no explicit channel was provided, it falls back to `pluginConfig.fallbackChannel`. If that is also unset, it returns `"unknown"`.
 
+### Format
+
+The value follows the same pipe-delimited format as `agentChannels`:
+
+```
+platform|accountId|targetId
+```
+
+| Segment | Example | Description |
+|---------|---------|-------------|
+| **Platform** | `telegram`, `discord` | Message platform type |
+| **Account ID** | `seo-bot`, `main-bot` | OpenClaw agent identifier (must match `openclaw.json → agents.list[].id`) |
+| **Target ID (chatId)** | `123456789`, `-1009876543210` | Chat ID that receives notifications |
+
+> **Important:** The **Account ID** is your OpenClaw agent identifier (e.g., `seo-bot`), **NOT** your Telegram bot username (do not include `@` symbol). It must match the `id` field in your `openclaw.json → agents.list` configuration.
+
+**Target ID (chatId)** is the Telegram chat identifier where notifications will be sent. It can be:
+- **Personal chat ID**: A positive number (e.g., `123456789`)
+- **Group/Channel ID**: A negative number starting with `-100` (e.g., `-1009876543210`)
+
+### Configuration Example
+
 ```jsonc
 {
   "plugins": {
@@ -111,7 +133,7 @@ When the plugin cannot determine the origin channel from the command/tool contex
       "openclaw-claude-code-plugin": {
         "enabled": true,
         "config": {
-          "fallbackChannel": "telegram|default-bot|123456789"
+          "fallbackChannel": "telegram|my-default-bot|123456789"
         }
       }
     }
@@ -119,7 +141,27 @@ When the plugin cannot determine the origin channel from the command/tool contex
 }
 ```
 
-> **Note:** `fallbackChannel` does **not** rescue a missing `agentChannels` mapping. The `claude_launch` pre-launch guard checks `resolveAgentChannel(workdir)` independently — if it returns `undefined`, launch is blocked regardless of `fallbackChannel`.
+### How to Get Your Telegram chatId
+
+**For Personal Chats:**
+1. Send any message to your Telegram Bot
+2. Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+3. Find the `chat.id` in the returned JSON
+
+**For Groups/Channels:**
+1. Add your Bot to the group or channel
+2. Send a message in the group (e.g., `/start`)
+3. Use the same getUpdates API to retrieve the `chat.id`
+
+The chatId will be a negative number like `-1009876543210` for groups/channels.
+
+### Use Cases
+
+- **Testing/Development**: Set a fixed test channel for notifications during development
+- **Non-Agent Context**: When tools are called from scripts without OpenClaw context
+- **Safety Net**: Ensures notifications have a destination when context resolution fails
+
+> **Important:** `fallbackChannel` does **not** rescue a missing `agentChannels` mapping. The `claude_launch` pre-launch guard checks `resolveAgentChannel(workdir)` independently — if it returns `undefined`, launch is blocked regardless of `fallbackChannel`.
 
 ---
 
