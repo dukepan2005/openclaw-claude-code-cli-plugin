@@ -94,6 +94,50 @@ export function register(api: any) {
       //   or just a bare chat ID.
       // Fallback channel comes from config.fallbackChannel (e.g. "telegram|123456789").
 
+      // Message queue to serialize sends and avoid rate limiting
+      interface QueuedMessage {
+        channelId: string;
+        text: string;
+        channel: string;
+        target: string;
+        account?: string;
+        threadId?: string;
+      }
+      const messageQueue: QueuedMessage[] = [];
+      let isSending = false;
+
+      const processQueue = () => {
+        if (isSending || messageQueue.length === 0) return;
+        isSending = true;
+        const msg = messageQueue.shift()!;
+
+        const cliArgs = ["message", "send", "--channel", msg.channel];
+        if (msg.account) {
+          cliArgs.push("--account", msg.account);
+        }
+        if (msg.threadId) {
+          cliArgs.push("--thread-id", msg.threadId);
+        }
+        cliArgs.push("--target", msg.target, "-m", msg.text);
+
+        console.log(`[claude-code] sendMessage CLI args: ${cliArgs.map((a: string) => a.includes('\n') ? `<multiline:${a.length}chars>` : a).join(' ')} (queue=${messageQueue.length})`);
+
+        execFile("openclaw", cliArgs, { timeout: 30_000 }, (err, stdout, stderr) => {
+          if (err) {
+            const exitCode = (err as any).code ?? 'unknown';
+            console.error(`[claude-code] sendMessage CLI ERROR: ${err.message} (exitCode=${exitCode})`);
+            if (stderr) console.error(`[claude-code] sendMessage CLI STDERR: ${stderr}`);
+            if (stdout) console.error(`[claude-code] sendMessage CLI STDOUT: ${stdout}`);
+          } else {
+            console.log(`[claude-code] sendMessage CLI OK -> channel=${msg.channel}, target=${msg.target}${msg.account ? `, account=${msg.account}` : ""}${msg.threadId ? `, threadId=${msg.threadId}` : ""}`);
+            if (stdout.trim()) console.log(`[claude-code] sendMessage CLI STDOUT: ${stdout.trim()}`);
+          }
+          isSending = false;
+          // Process next message with small delay to avoid rate limiting
+          setTimeout(processQueue, 100);
+        });
+      };
+
       const sendMessage = (channelId: string, text: string) => {
         // Resolve channel and target from channelId
         // Expected formats:
@@ -168,25 +212,9 @@ export function register(api: any) {
 
         console.log(`[claude-code] sendMessage -> channel=${channel}, target=${target}${account ? `, account=${account}` : ""}${threadId ? `, threadId=${threadId}` : ""}, textLen=${text.length}`);
 
-        // Build CLI args
-        const cliArgs = ["message", "send", "--channel", channel];
-        if (account) {
-          cliArgs.push("--account", account);
-        }
-        if (threadId) {
-          cliArgs.push("--thread-id", threadId);
-        }
-        cliArgs.push("--target", target, "-m", text);
-
-        execFile("openclaw", cliArgs, { timeout: 15_000 }, (err, stdout, stderr) => {
-          if (err) {
-            console.error(`[claude-code] sendMessage CLI ERROR: ${err.message}`);
-            if (stderr) console.error(`[claude-code] sendMessage CLI STDERR: ${stderr}`);
-          } else {
-            console.log(`[claude-code] sendMessage CLI OK -> channel=${channel}, target=${target}${account ? `, account=${account}` : ""}${threadId ? `, threadId=${threadId}` : ""}`);
-            if (stdout.trim()) console.log(`[claude-code] sendMessage CLI STDOUT: ${stdout.trim()}`);
-          }
-        });
+        // Add to queue instead of sending directly
+        messageQueue.push({ channelId, text, channel, target, account, threadId });
+        processQueue();
       };
 
       nr = new NotificationRouter(sendMessage);
