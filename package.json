@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "esbuild index.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/index.js --minify --external:openclaw --external:openclaw/plugin-sdk",
+    "prepare": "npm run build",
     "test": "tsx tests/session-filter.test.ts"
   },
   "openclaw": {
