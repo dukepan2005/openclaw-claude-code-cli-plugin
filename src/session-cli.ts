@@ -143,6 +143,7 @@ export class Session {
       // Build CLI arguments
       const args = [
         '--print',
+        '--verbose',  // Required for --output-format=stream-json
         '--output-format', 'stream-json',
         '--include-partial-messages',
         '--input-format', 'stream-json',  // Enable multi-turn via stdin
