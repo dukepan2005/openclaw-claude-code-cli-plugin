@@ -38,7 +38,7 @@ export function register(api: any) {
     console.log(`[PLUGIN]   ctx.sessionKey=${ctx?.sessionKey}`);
     console.log(`[PLUGIN]   ctx.workspaceDir=${ctx?.workspaceDir}`);
     console.log(`[PLUGIN]   ctx.sandboxed=${ctx?.sandboxed}`);
-    console.log(`[PLUGIN]   full ctx: ${JSON.stringify(ctx, null, 2)}`);
+    // console.log(`[PLUGIN]   full ctx: ${JSON.stringify(ctx, null, 2)}`);
   };
   api.registerTool((ctx: any) => { logCtx("claude_launch", ctx); return makeClaudeLaunchTool(ctx); }, { optional: false });
   api.registerTool((ctx: any) => { logCtx("claude_sessions", ctx); return makeClaudeSessionsTool(ctx); }, { optional: false });
