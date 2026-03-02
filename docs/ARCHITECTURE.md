@@ -25,8 +25,9 @@ User (Telegram/Discord) → OpenClaw Gateway → Agent → Plugin Tools → Clau
 - Persists completed sessions for resume (up to `maxPersistedSessions`)
 - GC interval cleans up stale sessions every 5 minutes
 
-### 3. Session (`src/session.ts`)
-- Wraps a single Claude Code PTY process via `@anthropic-ai/claude-agent-sdk`
+### 3. Session (`src/session-cli.ts`)
+
+- Wraps a single Claude Code CLI process via `child_process.spawn`
 - Handles output buffering, foreground streaming, and multi-turn conversation
 - Implements waiting-for-input detection with 15s safety-net timer
 - Double-firing guard (`waitingForInputFired`) prevents duplicate wake events

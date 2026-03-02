@@ -48,7 +48,6 @@ claude-code/
 
 | Package | Purpose |
 |---|---|
-| `@anthropic-ai/claude-agent-sdk` | Claude Code SDK — the `query()` function that powers each session. |
 | `@sinclair/typebox` | JSON Schema type builder for tool parameter definitions. |
 | `nanoid` | Generates short unique session IDs (8 characters). |
 
@@ -58,7 +57,7 @@ claude-code/
 
 1. **Foreground is per-channel, not per-session.** Multiple channels can watch the same session simultaneously, and one channel can have multiple sessions in foreground.
 
-2. **Multi-turn uses `AsyncIterable` prompts.** The `MessageStream` class implements `Symbol.asyncIterator` to feed user messages into the SDK's `query()` function as an async generator, keeping the session alive across turns.
+2. **Multi-turn uses stdin stream-json.** The Session class writes user messages to the Claude Code CLI's stdin in stream-json format, keeping the session alive across turns.
 
 3. **Persisted sessions survive GC.** When a session is garbage-collected (1 hour after completion), its Claude session ID is retained in a separate `persistedSessions` map so it can be resumed later. Entries are stored under three keys (internal ID, name, Claude UUID) for flexible lookup.
 

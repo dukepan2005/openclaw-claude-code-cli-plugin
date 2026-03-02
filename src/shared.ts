@@ -1,4 +1,4 @@
-import type { Session } from "./session";
+import type { Session } from "./session-cli";
 import type { SessionManager, SessionMetrics } from "./session-manager";
 import type { NotificationRouter } from "./notifications";
 import type { PluginConfig } from "./types";
