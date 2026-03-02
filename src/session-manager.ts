@@ -304,8 +304,9 @@ export class SessionManager {
    * Parse a session's originChannel into --deliver CLI args.
    *
    * originChannel formats:
-   *   "telegram|accountId|chatId"  → 3 segments (full)
-   *   "telegram|chatId"            → 2 segments (no account)
+   *   "telegram|chatId"                    → 2 segments (no account)
+   *   "telegram|accountId|chatId"          → 3 segments (with account)
+   *   "telegram|accountId|chatId|threadId" → 4 segments (with topic/thread)
    *
    * Returns empty array if channel is missing/invalid (safe no-op).
    */
@@ -317,12 +318,30 @@ export class SessionManager {
     if (parts.length < 2) {
       return [];
     }
-    if (parts.length >= 3) {
-      // "channel|account|target" (target may itself contain pipes, so rejoin)
-      return ["--deliver", "--reply-channel", parts[0], "--reply-account", parts[1], "--reply-to", parts.slice(2).join("|")];
+
+    const baseArgs = ["--deliver", "--reply-channel", parts[0]];
+
+    if (parts.length >= 4) {
+      // 4-segment format: channel|account|chatId|threadId
+      const account = parts[1];
+      const chatId = parts[2];
+      const threadId = parts[3];
+      const replyTo = threadId ? `${chatId}|${threadId}` : chatId;
+      if (account) {
+        return [...baseArgs, "--reply-account", account, "--reply-to", replyTo];
+      }
+      return [...baseArgs, "--reply-to", replyTo];
+    } else if (parts.length === 3) {
+      // 3-segment format: channel|account|chatId
+      const account = parts[1];
+      const chatId = parts[2];
+      if (account) {
+        return [...baseArgs, "--reply-account", account, "--reply-to", chatId];
+      }
+      return [...baseArgs, "--reply-to", chatId];
     }
-    // "channel|target" (no account)
-    return ["--deliver", "--reply-channel", parts[0], "--reply-to", parts[1]];
+    // 2-segment format: channel|chatId
+    return [...baseArgs, "--reply-to", parts[1]];
   }
 
   private wakeAgent(session: Session, eventText: string, telegramText: string, label: string): void {

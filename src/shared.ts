@@ -43,9 +43,14 @@ export function setNotificationRouter(nr: NotificationRouter | null): void {
 /**
  * Resolve origin channel from an OpenClaw command/tool context.
  *
- * Attempts to build a "channel|target" string from context properties.
- * Command context has: ctx.channel, ctx.senderId, ctx.chatId, ctx.id
+ * Attempts to build a "channel|target" or "channel|account|target|threadId" string from context properties.
+ * Command context has: ctx.channel, ctx.senderId, ctx.chatId, ctx.id, ctx.threadId
  * Tool execute receives just an _id (tool call ID like "toolu_xxx").
+ *
+ * Channel format:
+ *   - 2 segments: "channel|target" (basic)
+ *   - 3 segments: "channel|account|target" (with account)
+ *   - 4 segments: "channel|account|target|threadId" (with topic/thread)
  *
  * Falls back to config.fallbackChannel when the real channel info
  * is not available. If no fallbackChannel is configured, returns
@@ -57,16 +62,39 @@ export function resolveOriginChannel(ctx: any, explicitChannel?: string): string
   if (explicitChannel && String(explicitChannel).includes("|")) {
     return String(explicitChannel);
   }
+
+  // Extract thread ID if available (for Telegram forum topics)
+  const threadId = ctx?.threadId || ctx?.messageThreadId || null;
+
   // Try structured channel info from command context
   if (ctx?.channel && ctx?.chatId) {
-    return `${ctx.channel}|${ctx.chatId}`;
+    // Check if we have account info (3-segment format)
+    const account = ctx?.accountId || ctx?.account;
+    if (account) {
+      return threadId
+        ? `${ctx.channel}|${account}|${ctx.chatId}|${threadId}`
+        : `${ctx.channel}|${account}|${ctx.chatId}`;
+    }
+    return threadId
+      ? `${ctx.channel}||${ctx.chatId}|${threadId}`
+      : `${ctx.channel}|${ctx.chatId}`;
   }
   if (ctx?.channel && ctx?.senderId) {
-    return `${ctx.channel}|${ctx.senderId}`;
+    const account = ctx?.accountId || ctx?.account;
+    if (account) {
+      return threadId
+        ? `${ctx.channel}|${account}|${ctx.senderId}|${threadId}`
+        : `${ctx.channel}|${account}|${ctx.senderId}`;
+    }
+    return threadId
+      ? `${ctx.channel}||${ctx.senderId}|${threadId}`
+      : `${ctx.channel}|${ctx.senderId}`;
   }
   // If the context id looks like a numeric telegram chat id
   if (ctx?.id && /^-?\d+$/.test(String(ctx.id))) {
-    return `telegram|${ctx.id}`;
+    return threadId
+      ? `telegram||${ctx.id}|${threadId}`
+      : `telegram|${ctx.id}`;
   }
   // If channelId is already in "channel|target" format, pass through
   if (ctx?.channelId && String(ctx.channelId).includes("|")) {
