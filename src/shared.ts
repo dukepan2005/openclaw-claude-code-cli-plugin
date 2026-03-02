@@ -208,6 +208,15 @@ export function formatSessionListing(session: Session): string {
     lines.push(`   ↩️  Resumed from: ${session.resumeSessionId}${session.forkSession ? " (forked)" : ""}`);
   }
 
+  // Show error details for failed sessions
+  if (session.status === "failed") {
+    const errorDetail = session.error
+      || (session.result?.subtype && session.result.subtype !== "success" ? session.result.subtype : null);
+    if (errorDetail) {
+      lines.push(`   ⚠️ ${errorDetail}`);
+    }
+  }
+
   return lines.join("\n");
 }
 
