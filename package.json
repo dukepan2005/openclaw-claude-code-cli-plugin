@@ -9,7 +9,7 @@
   },
   "openclaw": {
     "extensions": [
-      "./dist/index.js"
+      "dist/index.js"
     ]
   },
   "files": [
@@ -22,7 +22,8 @@
     "nanoid": "^3.3.7"
   },
   "devDependencies": {
-    "esbuild": "^0.27.3"
+    "esbuild": "^0.27.3",
+    "tsx": "^4.21.0"
   },
   "keywords": [
     "openclaw",
