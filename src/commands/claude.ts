@@ -3,7 +3,7 @@ import { sessionManager, pluginConfig, resolveOriginChannel } from "../shared";
 export function registerClaudeCommand(api: any): void {
   api.registerCommand({
     name: "claude",
-    description: "Launch a Claude Code session. Usage: /claude [--name <name>] <prompt>",
+    description: "Launch a Claude Code session. Usage: /claude [--name <name>] [--workdir <path>] <prompt>",
     acceptsArgs: true,
     requireAuth: true,
     handler: (ctx: any) => {
@@ -15,7 +15,7 @@ export function registerClaudeCommand(api: any): void {
 
       let args = (ctx.args ?? "").trim();
       if (!args) {
-        return { text: "Usage: /claude [--name <name>] <prompt>" };
+        return { text: "Usage: /claude [--name <name>] [--workdir <path>] <prompt>" };
       }
 
       // Parse optional --name flag
@@ -26,16 +26,24 @@ export function registerClaudeCommand(api: any): void {
         args = args.slice(nameMatch[0].length).trim();
       }
 
+      // Parse optional --workdir flag (supports quoted paths with spaces)
+      let workdir: string | undefined;
+      const workdirMatch = args.match(/^--workdir\s+(?:"([^"]+)"|'([^']+)'|(\S+))\s*/);
+      if (workdirMatch) {
+        workdir = workdirMatch[1] || workdirMatch[2] || workdirMatch[3];
+        args = args.slice(workdirMatch[0].length).trim();
+      }
+
       const prompt = args;
       if (!prompt) {
-        return { text: "Usage: /claude [--name <name>] <prompt>" };
+        return { text: "Usage: /claude [--name <name>] [--workdir <path>] <prompt>" };
       }
 
       try {
         const session = sessionManager.spawn({
           prompt,
           name,
-          workdir: pluginConfig.defaultWorkdir || process.cwd(),
+          workdir: workdir || pluginConfig.defaultWorkdir || process.cwd(),
           model: pluginConfig.defaultModel,
           maxBudgetUsd: pluginConfig.defaultBudgetUsd ?? 5,
           originChannel: resolveOriginChannel(ctx),
