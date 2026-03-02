@@ -84,3 +84,77 @@ claude-code/
 
 - **`start()`** — Creates `SessionManager` and `NotificationRouter`, wires them together, starts the long-running reminder check interval (60s), and starts a GC interval (5 min).
 - **`stop()`** — Stops the notification router, kills all active sessions, clears intervals, and nulls singletons.
+
+---
+
+## OpenClaw Context Fields
+
+When OpenClaw calls a command handler, it provides a rich context object. Here are the available fields:
+
+```typescript
+interface OpenClawCommandContext {
+  // Sender information
+  senderId: string;           // "5948095689" - User ID who sent the command
+
+  // Channel information
+  channel: string;            // "telegram" | "discord" | "whatsapp" | ...
+  channelId: string;          // Internal channel identifier
+
+  // Routing information (key for replies)
+  from: string;               // "telegram:group:-1003889434099:topic:2"
+  to: string;                 // "telegram:-1003889434099" (target chat)
+  accountId: string;          // "default" - Channel account ID
+  messageThreadId: number;    // 2 - Topic/Thread ID (for forum topics)
+
+  // Command content
+  args: string;               // Command arguments (without command name)
+  commandBody: string;        // Full command text: "/claude your prompt"
+
+  // Authorization
+  isAuthorizedSender: boolean;
+
+  // Configuration
+  config: Record<string, any>;
+}
+```
+
+### Example Context
+
+```json
+{
+  "senderId": "5948095689",
+  "channel": "telegram",
+  "channelId": "...",
+  "isAuthorizedSender": true,
+  "args": "your prompt here",
+  "commandBody": "/claude your prompt here",
+  "config": {},
+  "from": "telegram:group:-1003889434099:topic:2",
+  "to": "telegram:-1003889434099",
+  "accountId": "default",
+  "messageThreadId": 2
+}
+```
+
+### Using Context for Replies
+
+The `resolveOriginChannel()` function in `src/shared.ts` extracts reply information from the context:
+
+```typescript
+// Channel format: "channel|account|chatId|threadId"
+// Example: "telegram|default|-1003889434099|2"
+
+const originChannel = resolveOriginChannel(ctx);
+// Returns: "telegram|default|-1003889434099|2"
+```
+
+This channel string is then used with `openclaw message send`:
+
+```bash
+openclaw message send \
+  --channel telegram \
+  --account default \
+  --target -1003889434099 \
+  --thread-id 2 \
+  -m "Reply message"
+```
