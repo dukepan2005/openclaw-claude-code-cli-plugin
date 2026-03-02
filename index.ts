@@ -14,6 +14,8 @@ import { registerClaudeBgCommand } from "./src/commands/claude-bg";
 import { registerClaudeResumeCommand } from "./src/commands/claude-resume";
 import { registerClaudeRespondCommand } from "./src/commands/claude-respond";
 import { registerClaudeStatsCommand } from "./src/commands/claude-stats";
+import { registerClaudeWatchCommand } from "./src/commands/claude-watch";
+import { registerClaudeUnwatchCommand } from "./src/commands/claude-unwatch";
 import { registerGatewayMethods } from "./src/gateway";
 import { SessionManager } from "./src/session-manager";
 import { NotificationRouter } from "./src/notifications";
@@ -58,6 +60,8 @@ export function register(api: any) {
   registerClaudeResumeCommand(api);
   registerClaudeRespondCommand(api);
   registerClaudeStatsCommand(api);
+  registerClaudeWatchCommand(api);
+  registerClaudeUnwatchCommand(api);
 
   // Gateway RPC methods (Task 17)
   registerGatewayMethods(api);
