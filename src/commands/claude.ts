@@ -3,7 +3,7 @@ import { sessionManager, pluginConfig, resolveOriginChannel } from "../shared";
 export function registerClaudeCommand(api: any): void {
   api.registerCommand({
     name: "claude",
-    description: "Launch a Claude Code session. Usage: /claude [--name <name>] [--workdir <path>] <prompt>",
+    description: "Launch a Claude Code session. Usage: /claude [-name <name>] [-workdir <path>] <prompt>",
     acceptsArgs: true,
     requireAuth: true,
     handler: (ctx: any) => {
@@ -15,20 +15,20 @@ export function registerClaudeCommand(api: any): void {
 
       let args = (ctx.args ?? "").trim();
       if (!args) {
-        return { text: "Usage: /claude [--name <name>] [--workdir <path>] <prompt>" };
+        return { text: "Usage: /claude [-name <name>] [-workdir <path>] <prompt>" };
       }
 
-      // Parse optional --name flag
+      // Parse optional -name flag (single dash for Telegram compatibility)
       let name: string | undefined;
-      const nameMatch = args.match(/^--name\s+(\S+)\s+/);
+      const nameMatch = args.match(/^-name\s+(\S+)\s+/);
       if (nameMatch) {
         name = nameMatch[1];
         args = args.slice(nameMatch[0].length).trim();
       }
 
-      // Parse optional --workdir flag (supports quoted paths with spaces)
+      // Parse optional -workdir flag (supports quoted paths with spaces)
       let workdir: string | undefined;
-      const workdirMatch = args.match(/^--workdir\s+(?:"([^"]+)"|'([^']+)'|(\S+))\s*/);
+      const workdirMatch = args.match(/^-workdir\s+(?:"([^"]+)"|'([^']+)'|(\S+))\s*/);
       if (workdirMatch) {
         workdir = workdirMatch[1] || workdirMatch[2] || workdirMatch[3];
         args = args.slice(workdirMatch[0].length).trim();
@@ -36,7 +36,7 @@ export function registerClaudeCommand(api: any): void {
 
       const prompt = args;
       if (!prompt) {
-        return { text: "Usage: /claude [--name <name>] [--workdir <path>] <prompt>" };
+        return { text: "Usage: /claude [-name <name>] [-workdir <path>] <prompt>" };
       }
 
       try {
