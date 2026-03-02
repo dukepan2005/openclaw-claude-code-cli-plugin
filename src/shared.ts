@@ -43,9 +43,12 @@ export function setNotificationRouter(nr: NotificationRouter | null): void {
 /**
  * Resolve origin channel from an OpenClaw command/tool context.
  *
- * Attempts to build a "channel|target" or "channel|account|target|threadId" string from context properties.
- * Command context has: ctx.channel, ctx.senderId, ctx.chatId, ctx.id, ctx.threadId
- * Tool execute receives just an _id (tool call ID like "toolu_xxx").
+ * OpenClaw provides rich context including:
+ *   - ctx.to: "telegram:-1003889434099" (target chat)
+ *   - ctx.from: "telegram:group:-1003889434099:topic:2" (source)
+ *   - ctx.accountId: "default"
+ *   - ctx.messageThreadId: 2 (for forum topics)
+ *   - ctx.channel: "telegram"
  *
  * Channel format:
  *   - 2 segments: "channel|target" (basic)
@@ -63,12 +66,28 @@ export function resolveOriginChannel(ctx: any, explicitChannel?: string): string
     return String(explicitChannel);
   }
 
-  // Extract thread ID if available (for Telegram forum topics)
-  const threadId = ctx?.threadId || ctx?.messageThreadId || null;
+  const channel = ctx?.channel || "telegram";
+  const accountId = ctx?.accountId || "";
+  const threadId = ctx?.messageThreadId || ctx?.threadId || null;
 
-  // Try structured channel info from command context
+  // Parse ctx.to to extract chatId (format: "telegram:-1003889434099")
+  if (ctx?.to && typeof ctx.to === "string") {
+    const toParts = ctx.to.split(":");
+    if (toParts.length >= 2) {
+      const chatId = toParts.slice(1).join(":");  // Handle cases like "telegram:group:-100..."
+      if (accountId && threadId) {
+        return `${channel}|${accountId}|${chatId}|${threadId}`;
+      } else if (accountId) {
+        return `${channel}|${accountId}|${chatId}`;
+      } else if (threadId) {
+        return `${channel}||${chatId}|${threadId}`;
+      }
+      return `${channel}|${chatId}`;
+    }
+  }
+
+  // Fallback: Try structured channel info from command context
   if (ctx?.channel && ctx?.chatId) {
-    // Check if we have account info (3-segment format)
     const account = ctx?.accountId || ctx?.account;
     if (account) {
       return threadId
