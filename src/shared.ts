@@ -43,14 +43,28 @@ export function setNotificationRouter(nr: NotificationRouter | null): void {
 /**
  * Resolve origin channel from an OpenClaw command/tool context.
  *
- * OpenClaw provides rich context including:
- *   - ctx.to: "telegram:-1003889434099" (target chat)
- *   - ctx.from: "telegram:group:-1003889434099:topic:2" (source)
- *   - ctx.accountId: "default"
- *   - ctx.messageThreadId: 2 (for forum topics)
- *   - ctx.channel: "telegram"
+ * ## PluginCommandContext (from OpenClaw core)
  *
- * Channel format:
+ * The ctx object passed to command handlers contains:
+ *   - ctx.senderId: Sender's identifier (e.g., Telegram user ID)
+ *   - ctx.channel: The channel/surface (e.g., "telegram", "discord")
+ *   - ctx.channelId: Provider channel id (e.g., "telegram")
+ *   - ctx.isAuthorizedSender: Whether the sender is on the allowlist
+ *   - ctx.args: Raw command arguments after the command name
+ *   - ctx.commandBody: The full normalized command body
+ *   - ctx.config: Current OpenClaw configuration
+ *   - ctx.from: Raw "From" value (channel-scoped id, e.g., "telegram:group:-100...:topic:2")
+ *   - ctx.to: Raw "To" value (channel-scoped id, e.g., "telegram:-1003889434099")
+ *   - ctx.accountId: Account id for multi-account channels
+ *   - ctx.messageThreadId: Thread/topic id if available
+ *
+ * ## Why use ctx.to instead of ctx.from?
+ *
+ *   - ctx.to is the TARGET chat where the message was sent (the group/channel)
+ *   - ctx.from is the SOURCE with potentially more complex structure
+ *   - For replies/notifications, we want to send to the chat (ctx.to), not the sender
+ *
+ * ## Channel format (output):
  *   - 2 segments: "channel|target" (basic)
  *   - 3 segments: "channel|account|target" (with account)
  *   - 4 segments: "channel|account|target|threadId" (with topic/thread)
@@ -70,11 +84,13 @@ export function resolveOriginChannel(ctx: any, explicitChannel?: string): string
   const accountId = ctx?.accountId || "";
   const threadId = ctx?.messageThreadId || ctx?.threadId || null;
 
-  // Parse ctx.to to extract chatId (format: "telegram:-1003889434099")
+  // Parse ctx.to to extract chatId (format: "telegram:-1003889434099" or "telegram:123456789")
+  // Note: ctx.to is ALWAYS the simple format without group:/topic: prefixes
+  // The complex format (telegram:group:-100...:topic:2) is in ctx.from, not ctx.to
   if (ctx?.to && typeof ctx.to === "string") {
     const toParts = ctx.to.split(":");
     if (toParts.length >= 2) {
-      const chatId = toParts.slice(1).join(":");  // Handle cases like "telegram:group:-100..."
+      const chatId = toParts.slice(1).join(":");  // e.g., "-1003889434099" or "123456789"
       if (accountId && threadId) {
         return `${channel}|${accountId}|${chatId}|${threadId}`;
       } else if (accountId) {

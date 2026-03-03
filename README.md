@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**[中文文档](README_CN.md)**
+English | [简体中文](README.zh_CN.md)
 
 </div>
 
@@ -340,6 +340,7 @@ npm install -g @anthropic-ai/claude-code
 |:--------:|----------|-------------|
 | 6️⃣ | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture overview and component breakdown |
 | 7️⃣ | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guide, project structure, build instructions |
+| 8️⃣ | [OpenClaw-Context-Reference.md](docs/OpenClaw-Context-Reference.md) | OpenClaw context types (PluginCommandContext, ToolContext) |
 
 ---
 

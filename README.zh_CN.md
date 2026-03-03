@@ -4,11 +4,15 @@
 
 <div align="center">
 
+[English](README.md) | 简体中文
+
+</div>
+
+<div align="center">
+
 [![Demo Video](https://img.youtube.com/vi/vbX1Y0Nx4Tc/maxresdefault.jpg)](https://youtube.com/shorts/vbX1Y0Nx4Tc)
 
 *两个并行的 Claude Code 代理同时在 Telegram 中构建 X 克隆和 Instagram 克隆。*
-
-**[🌐 English](README.md)**
 
 </div>
 
@@ -380,9 +384,10 @@ openclaw gateway restart
 **从这里开始 →** [ARCHITECTURE_CN.md](docs/ARCHITECTURE_CN.md) — 理解插件架构
 
 | 优先级 | 文档 | 描述 |
-|:------:|------|------|
+| :------: | ------ | ------ |
 | 6️⃣ | [ARCHITECTURE_CN.md](docs/ARCHITECTURE_CN.md) | 架构概览和组件分解 |
 | 7️⃣ | [DEVELOPMENT_CN.md](docs/DEVELOPMENT_CN.md) | 开发指南、项目结构、构建说明 |
+| 8️⃣ | [OpenClaw-Context-Reference.zh_CN.md](docs/OpenClaw-Context-Reference.zh_CN.md) | OpenClaw 上下文类型（PluginCommandContext、ToolContext） |
 
 ---
 

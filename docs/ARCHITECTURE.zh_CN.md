@@ -98,6 +98,65 @@ Claude Code 进程退出
 5. **maxAutoResponds 限制** — 防止无限代理循环；在用户交互时重置（`userInitiated: true`）
 6. **频道传播** — 工具接受可选的 `channel` 参数以路由到正确的用户，而不是回退到 "unknown"
 
+## OpenClaw 上下文类型
+
+插件在调用工具和命令时从 OpenClaw 接收上下文。理解这些类型对于正确的频道解析和消息路由至关重要。
+
+### PluginCommandContext
+
+通过 `api.registerCommand()` 注册的命令处理器接收的上下文：
+
+```typescript
+type PluginCommandContext = {
+  senderId?: string;          // 发送者标识（例如 Telegram 用户 ID）
+  channel: string;            // 通道/平台（例如 "telegram"、"discord"）
+  channelId?: ChannelId;      // 提供者通道 id（例如 "telegram"）
+  isAuthorizedSender: boolean;// 发送者是否在允许列表中
+  args?: string;              // 命令名后的原始参数
+  commandBody: string;        // 完整的规范化命令体
+  config: OpenClawConfig;     // 当前 OpenClaw 配置
+  from?: string;              // 原始 "From" 值（来源，包含群组/话题信息）
+  to?: string;                // 原始 "To" 值（目标聊天 ID）
+  accountId?: string;         // 多账号通道的账号 id
+  messageThreadId?: number;   // 线程/话题 id（如果可用）
+};
+```
+
+### ctx.to 与 ctx.from
+
+- **`ctx.to`** — 消息发送到的目标聊天。这是回复应该发送到的地方。
+  - 示例：`"telegram:-1003889434099"`（一个 Telegram 群组）
+- **`ctx.from`** — 来源，可能包含更复杂的结构。
+  - 示例：`"telegram:group:-1003889434099:topic:2"`（包含群组和话题信息）
+
+**使用 `ctx.to` 进行频道解析**，因为我们想要回复到聊天/群组，而不是回复给个人发送者。
+
+### OpenClawPluginToolContext
+
+通过 `api.registerTool((ctx) => ...)` 注册的工具工厂接收的上下文：
+
+```typescript
+type OpenClawPluginToolContext = {
+  config?: OpenClawConfig;     // 完整的 OpenClaw 配置
+  workspaceDir?: string;       // 代理的工作目录
+  agentDir?: string;           // 代理的配置目录
+  agentId?: string;            // 代理标识符
+  sessionKey?: string;         // 对话的会话键
+  messageChannel?: string;     // 发送消息的通道
+  agentAccountId?: string;     // 代理的账号 ID
+  sandboxed?: boolean;         // 是否在沙箱模式下运行
+};
+```
+
+### 频道解析
+
+`src/shared.ts` 中的 `resolveOriginChannel()` 函数将上下文转换为规范化的频道字符串：
+
+- 格式：`channel|account|target|threadId`（段数可变）
+- 示例：`"telegram|default|-1003889434099|2"`（带话题的 Telegram 群组）
+
+详细实现和注释请参见 `src/shared.ts`。
+
 ## 配置
 
 有关完整的配置模式，请参阅 `openclaw.plugin.json`。关键设置：
