@@ -1,9 +1,10 @@
 import { sessionManager, resolveOriginChannel } from "../shared";
 
 /**
- * /claude_watch <name-or-id>
+ * /claude_watch [name-or-id]
  *
  * Subscribe to a session's real-time output without showing catchup.
+ * If no argument provided, defaults to the last active session in the current channel.
  * Unlike /claude_fg which displays missed output, this command silently
  * starts streaming future output to the current channel.
  *
@@ -13,7 +14,7 @@ import { sessionManager, resolveOriginChannel } from "../shared";
 export function registerClaudeWatchCommand(api: any): void {
   api.registerCommand({
     name: "claude_watch",
-    description: "Subscribe to a session's real-time output (no catchup)",
+    description: "Subscribe to a session's real-time output. Usage: /claude_watch [name-or-id]",
     acceptsArgs: true,
     requireAuth: true,
     handler: (ctx: any) => {
@@ -24,13 +25,27 @@ export function registerClaudeWatchCommand(api: any): void {
       }
 
       const ref = ctx.args?.trim();
-      if (!ref) {
-        return { text: "Usage: /claude_watch <name-or-id>" };
-      }
+      let session;
 
-      const session = sessionManager.resolve(ref);
-      if (!session) {
-        return { text: `Error: Session "${ref}" not found.` };
+      if (!ref) {
+        // Default to last active session in current channel
+        const channelId = resolveOriginChannel(ctx);
+        session = sessionManager.findMostRecentSessionForChannel(channelId);
+        if (!session) {
+          return {
+            text: [
+              "No active session in this channel.",
+              "",
+              "To watch a session: /claude_watch <name-or-id>",
+              "Use /claude_sessions to list all sessions.",
+            ].join("\n"),
+          };
+        }
+      } else {
+        session = sessionManager.resolve(ref);
+        if (!session) {
+          return { text: `Error: Session "${ref}" not found.` };
+        }
       }
 
       const channelId = resolveOriginChannel(ctx);

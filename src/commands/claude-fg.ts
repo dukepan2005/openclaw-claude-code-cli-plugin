@@ -3,7 +3,7 @@ import { sessionManager, formatDuration, resolveOriginChannel } from "../shared"
 export function registerClaudeFgCommand(api: any): void {
   api.registerCommand({
     name: "claude_fg",
-    description: "Bring a Claude Code session to foreground by name or ID",
+    description: "Bring a Claude Code session to foreground. Usage: /claude_fg [name-or-id]",
     acceptsArgs: true,
     requireAuth: true,
     handler: (ctx: any) => {
@@ -14,13 +14,27 @@ export function registerClaudeFgCommand(api: any): void {
       }
 
       const ref = ctx.args?.trim();
-      if (!ref) {
-        return { text: "Usage: /claude_fg <name-or-id>" };
-      }
+      let session;
 
-      const session = sessionManager.resolve(ref);
-      if (!session) {
-        return { text: `Error: Session "${ref}" not found.` };
+      if (!ref) {
+        // Default to last active session in current channel
+        const channelId = resolveOriginChannel(ctx);
+        session = sessionManager.findMostRecentSessionForChannel(channelId);
+        if (!session) {
+          return {
+            text: [
+              "No active session in this channel.",
+              "",
+              "To bring a session to foreground: /claude_fg <name-or-id>",
+              "Use /claude_sessions to list all sessions.",
+            ].join("\n"),
+          };
+        }
+      } else {
+        session = sessionManager.resolve(ref);
+        if (!session) {
+          return { text: `Error: Session "${ref}" not found.` };
+        }
       }
 
       // Mark as foreground using the resolved channel (e.g. "telegram|123456")

@@ -71,6 +71,64 @@ claude-code/
 
 ---
 
+## Core Concepts: Session and Channel
+
+### Session
+
+A `Session` is a wrapper around a Claude Code CLI process. Each session manages one subprocess spawned via `child_process.spawn()`.
+
+```
+Session (src/session-cli.ts)
+  ├── childProcess        ← Claude Code CLI subprocess
+  ├── foregroundChannels  ← Set<string> of channels watching in real-time
+  ├── outputBuffer        ← Output history (max 200 lines)
+  ├── status              ← "starting" | "running" | "completed" | "failed" | "killed"
+  └── callbacks           ← onOutput, onToolUse, onComplete, onWaitingForInput
+```
+
+**Key behaviors:**
+- `foregroundChannels.add(channelId)` — Enables real-time output streaming to that channel
+- `foregroundChannels.delete(channelId)` — Stops streaming; session runs in background for that channel
+- One session can be watched by multiple channels simultaneously
+
+### Channel
+
+A `channel` is a string identifier for a message destination (Telegram chat, Discord channel, etc.). It represents "where the user sent the command from."
+
+**Internal format (uses `|` as separator):**
+- `telegram|123456789` — 2 segments: channel type + chat ID
+- `telegram|my-agent|123456789` — 3 segments: with account
+- `telegram|my-agent|-1001234567890|42` — 4 segments: with topic/thread
+
+**OpenClaw input format (uses `:` as separator):**
+- `ctx.to` format: `telegram:-1003889434099` (converted to internal format by `resolveOriginChannel()`)
+
+**Resolution flow:**
+```
+User sends command from Telegram group
+  → ctx.to = "telegram:-1003889434099"
+  → resolveOriginChannel(ctx) converts to "telegram|-1003889434099"
+  → channelId stored in session.foregroundChannels
+```
+
+### Foreground vs Background
+
+- **Foreground** (channel in `foregroundChannels`): Real-time output streaming (debounced 500ms)
+- **Background** (channel not in `foregroundChannels`): Minimal notifications only (questions, completion)
+
+Commands like `/claude_watch` and `/claude_unwatch` manage which channels are in the foreground set.
+
+**Output flow:**
+```
+CLI outputs text
+  → Session.onOutput callback
+  → NotificationRouter.onAssistantText()
+  → Iterate through session.foregroundChannels
+  → Push to each channel
+```
+
+---
+
 ## Adding a New Tool or Command
 
 1. Create a new file under `src/tools/` or `src/commands/`.

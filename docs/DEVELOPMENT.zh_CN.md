@@ -71,6 +71,64 @@ claude-code/
 
 ---
 
+## 核心概念：Session 和 Channel
+
+### Session（会话）
+
+`Session` 是对 Claude Code CLI 进程的封装。每个 Session 管理一个通过 `child_process.spawn()` 启动的子进程。
+
+```
+Session (src/session-cli.ts)
+  ├── childProcess        ← Claude Code CLI 子进程
+  ├── foregroundChannels  ← Set<string> 实时监听的频道集合
+  ├── outputBuffer        ← 输出历史（最多 200 行）
+  ├── status              ← "starting" | "running" | "completed" | "failed" | "killed"
+  └── callbacks           ← onOutput, onToolUse, onComplete, onWaitingForInput
+```
+
+**关键行为：**
+- `foregroundChannels.add(channelId)` — 启用向该频道实时推送输出
+- `foregroundChannels.delete(channelId)` — 停止推送；会话在该频道进入后台运行
+- 一个会话可以同时被多个频道监听
+
+### Channel（频道）
+
+`channel` 是消息目的地的字符串标识符（Telegram 聊天、Discord 频道等）。它表示"用户从哪里发送命令"。
+
+**内部格式（使用 `|` 作为分隔符）：**
+- `telegram|123456789` — 2 段：频道类型 + 聊天 ID
+- `telegram|my-agent|123456789` — 3 段：带账户
+- `telegram|my-agent|-1001234567890|42` — 4 段：带话题/线程
+
+**OpenClaw 输入格式（使用 `:` 作为分隔符）：**
+- `ctx.to` 格式：`telegram:-1003889434099`（由 `resolveOriginChannel()` 转换为内部格式）
+
+**解析流程：**
+```
+用户从 Telegram 群组发送命令
+  → ctx.to = "telegram:-1003889434099"
+  → resolveOriginChannel(ctx) 转换为 "telegram|-1003889434099"
+  → channelId 存储在 session.foregroundChannels 中
+```
+
+### 前台 vs 后台
+
+- **前台**（频道在 `foregroundChannels` 中）：实时输出流（500ms 防抖）
+- **后台**（频道不在 `foregroundChannels` 中）：仅最小通知（提问、完成）
+
+`/claude_watch` 和 `/claude_unwatch` 等命令管理哪些频道在前台集合中。
+
+**输出流程：**
+```
+CLI 输出文本
+  → Session.onOutput 回调
+  → NotificationRouter.onAssistantText()
+  → 遍历 session.foregroundChannels
+  → 推送到每个频道
+```
+
+---
+
 ## 添加新工具或命令
 
 1. 在 `src/tools/` 或 `src/commands/` 下创建新文件。

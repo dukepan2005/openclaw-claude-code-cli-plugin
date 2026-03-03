@@ -1,15 +1,15 @@
 import { sessionManager, resolveOriginChannel } from "../shared";
 
 /**
- * /claude_unwatch <name-or-id>
+ * /claude_unwatch [name-or-id]
  *
  * Unsubscribe from a session's real-time output.
- * Stops streaming output to the current channel.
+ * If no argument provided, defaults to the last active session in the current channel.
  */
 export function registerClaudeUnwatchCommand(api: any): void {
   api.registerCommand({
     name: "claude_unwatch",
-    description: "Unsubscribe from a session's real-time output",
+    description: "Unsubscribe from a session's real-time output. Usage: /claude_unwatch [name-or-id]",
     acceptsArgs: true,
     requireAuth: true,
     handler: (ctx: any) => {
@@ -20,13 +20,27 @@ export function registerClaudeUnwatchCommand(api: any): void {
       }
 
       const ref = ctx.args?.trim();
-      if (!ref) {
-        return { text: "Usage: /claude_unwatch <name-or-id>" };
-      }
+      let session;
 
-      const session = sessionManager.resolve(ref);
-      if (!session) {
-        return { text: `Error: Session "${ref}" not found.` };
+      if (!ref) {
+        // Default to last active session in current channel
+        const channelId = resolveOriginChannel(ctx);
+        session = sessionManager.findMostRecentSessionForChannel(channelId);
+        if (!session) {
+          return {
+            text: [
+              "No active session in this channel.",
+              "",
+              "To unwatch a session: /claude_unwatch <name-or-id>",
+              "Use /claude_sessions to list all sessions.",
+            ].join("\n"),
+          };
+        }
+      } else {
+        session = sessionManager.resolve(ref);
+        if (!session) {
+          return { text: `Error: Session "${ref}" not found.` };
+        }
       }
 
       const channelId = resolveOriginChannel(ctx);
