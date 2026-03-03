@@ -184,7 +184,7 @@ export function makeClaudeLaunchTool(ctx: OpenClawPluginToolContext) {
                     `Summary of what Claude did, files changed, issues found.`,
                     `(Used when a session completes — the agent reads the output and summarizes)`,
                     ``,
-                    `Note: 🔔 Claude asks and ↩️ Responded notifications are handled automatically by the plugin. The skill only needs to define rules for 👋 (when to forward vs auto-respond) and 🤖 (summary format).`,
+                    `Note: 🔔 Claude asks and 💬 Responded notifications are handled automatically by the plugin. The skill only needs to define rules for 👋 (when to forward vs auto-respond) and 🤖 (summary format).`,
                   ].join("\n"),
                 },
               ],

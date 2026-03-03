@@ -252,7 +252,7 @@ export function formatSessionListing(session: Session): string {
 
   // Show resume info if this session was resumed
   if (session.resumeSessionId) {
-    lines.push(`   ↩️  Resumed from: ${session.resumeSessionId}${session.forkSession ? " (forked)" : ""}`);
+    lines.push(`   🔗  Resumed from: ${session.resumeSessionId}${session.forkSession ? " (forked)" : ""}`);
   }
 
   // Show error details for failed sessions

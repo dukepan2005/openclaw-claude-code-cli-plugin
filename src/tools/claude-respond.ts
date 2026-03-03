@@ -112,10 +112,10 @@ export function makeClaudeRespondTool(ctx?: OpenClawPluginToolContext) {
           session.incrementAutoRespond();
         }
 
-        // Level 1: Send ↩️ Responded notification to Telegram
+        // Level 1: Send 💬 Responded notification to Telegram
         if (sessionManager) {
           const respondMsg = [
-            `↩️ [${session.name}] Responded:`,
+            `💬 [${session.name}] Responded:`,
             params.message.length > 200 ? params.message.slice(0, 200) + "..." : params.message,
           ].join("\n");
           sessionManager.deliverToTelegram(session, respondMsg, "responded");

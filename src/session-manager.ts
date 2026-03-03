@@ -177,13 +177,13 @@ export class SessionManager {
 
     session.start();
 
-    // Level 1: Send ↩️ Launched notification to Telegram (informational, no IPC wake)
+    // Level 1: Send 🚀 Launched notification to Telegram (informational, no IPC wake)
     const promptSummary = session.prompt.length > 80
       ? session.prompt.slice(0, 80) + "..."
       : session.prompt;
     this.deliverToTelegram(
       session,
-      `↩️ [${session.name}] Launched:\n${promptSummary}`,
+      `🚀 [${session.name}] Launched:\n${promptSummary}`,
       "launched",
     );
 
@@ -369,8 +369,8 @@ export class SessionManager {
    * Send an informational notification to Telegram WITHOUT waking the agent.
    *
    * Used for notifications that are user-monitoring only (Level 1 — deliver only):
-   *   ↩️ Launched  — session started with initial prompt
-   *   ↩️ Responded — user replied to a waiting session
+   *   🚀 Launched  — session started with initial prompt
+   *   💬 Responded — user replied to a waiting session
    *   ❌ Failed    — session failed
    *   ⛔ Killed    — session was killed
    *

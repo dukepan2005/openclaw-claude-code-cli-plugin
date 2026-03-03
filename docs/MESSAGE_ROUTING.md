@@ -83,9 +83,9 @@ Sent by SessionManager via `openclaw message send` (fire-and-forget).
 
 | Emoji | Event | When | Agent Wake |
 |-------|-------|------|------------|
-| ↩️ | Launched | Session started | No |
+| 🚀 | Launched | Session started | No |
 | 🔔 | Claude asks | Waiting for input | Yes — `claude_respond` |
-| ↩️ | Responded | Agent replied | No |
+| 💬 | Responded | Agent replied | No |
 | ✅ | Completed | Session finished | Yes — `claude_output` + summarize |
 | ❌ | Failed | Session error | No |
 | ⛔ | Killed | Session terminated | No |
