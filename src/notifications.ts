@@ -161,9 +161,13 @@ export class NotificationRouter {
     }
 
     const duration = formatDuration(session.duration);
+    const spent = session.costUsd.toFixed(2);
+    const limit = session.maxBudgetUsd.toFixed(2);
     const msg = [
-      `⛔ Session limit reached — ${session.name} [${session.id}] (${duration})`,
+      `💰 Budget exhausted — ${session.name} [${session.id}] (${duration})`,
+      `   💵 Spent $${spent} of $${limit} limit`,
       `   📁 ${session.workdir}`,
+      `   💡 Tip: Increase 'defaultBudgetUsd' in plugin config or use a Coding Plan service`,
     ].join("\n");
 
     // Notify foreground channels only — background sessions are handled by wakeAgent()

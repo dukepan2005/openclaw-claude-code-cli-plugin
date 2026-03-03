@@ -20,12 +20,68 @@ Launch, monitor, and interact with multiple Claude Code sessions directly from T
 
 ---
 
+## 🔄 About This Project
+
+### Fork Source
+
+This project is a fork of [alizarion/openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin), originally created by **Betrue**.
+
+### Key Difference: CLI-based Architecture
+
+**Original Project (@alizarion/openclaw-claude-code-plugin)**
+
+- Uses `@anthropic-ai/claude-agent-sdk` (npm package)
+- Embeds the SDK directly in the plugin
+- Limited to Anthropic's official Claude API
+
+**This Fork (@dukepan2005/openclaw-claude-code-cli-plugin)**
+
+- **Spawns Claude Code CLI as a child process** using `child_process.spawn`
+- Communicates with CLI via stream-json format over stdin/stdout
+- **Works with any Claude-compatible model service** (Anthropic API, OpenRouter, custom endpoints, etc.)
+
+### Why This Approach?
+
+✅ **Model Flexibility**: Use any Claude-compatible service without modifying plugin code
+✅ **Configuration**: Use existing `claude` CLI config (`~/.claude/config.json`) for API endpoints
+✅ **Updates**: Benefit from Claude Code CLI updates automatically
+✅ **No SDK Dependency**: Eliminates compatibility issues with SDK versions
+
+### Installation
+
+Since this is a forked package, install from source:
+
+```bash
+# Clone the repository
+git clone https://github.com/dukepan2005/openclaw-claude-code-cli-plugin.git
+cd openclaw-claude-code-cli-plugin
+
+# Install dependencies and build
+npm install
+npm run build
+
+# Install the plugin locally (development mode)
+openclaw plugins link .
+openclaw gateway restart
+```
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Install Plugin
 
 ```bash
-openclaw plugins install @betrue/openclaw-claude-code-plugin
+# From local source (recommended for this fork)
+git clone https://github.com/dukepan2005/openclaw-claude-code-cli-plugin.git
+cd openclaw-claude-code-cli-plugin
+npm install
+npm run build
+openclaw plugins link .
+openclaw gateway restart
+
+# Or install from npm (when published)
+openclaw plugins install @dukepan2005/openclaw-claude-code-cli-plugin
 openclaw gateway restart
 ```
 
@@ -53,8 +109,12 @@ Edit `~/.openclaw/openclaw.json`:
 
 In Telegram, send:
 ```
-/claude Create a hello world program
+/claude -name hello-world Create a hello world program
 ```
+
+> **⚠️ Important**: The `-name` parameter is **required** to launch a new session.
+> - Without `-name`: Sends message to the most recent active session
+> - With `-name`: Creates a new session with the specified name
 
 ---
 
@@ -74,9 +134,7 @@ In Telegram, send:
 ### Launch Session
 
 ```bash
-/claude Fix login page bug
-
-/claude --name fix-auth Fix authentication issue
+/claude -name fix-auth Fix authentication issue
 ```
 
 ### View Sessions
@@ -89,10 +147,24 @@ In Telegram, send:
 ### Interact with Session
 
 ```bash
+# Quick way to send a message (to the most recent session in this channel)
+/claude Add unit tests
+
+# Specify which session to message
 /claude_respond fix-auth Add unit tests
 
+# Interrupt and redirect
 /claude_respond --interrupt fix-auth Stop! Try different approach
+
+# Quick interrupt (sends ESC to stop current response)
+/claude_esc                    # Interrupt most recent session
+/c_esc fix-auth                # Interrupt specific session
 ```
+
+> **Note**:
+> - `/claude <message>` without `-name` sends to the most recent active session in the current channel
+> - `/claude_esc` or `/c_esc` sends ESC to interrupt Claude mid-response
+> - Use `/claude_respond <name> <message>` to target a specific session
 
 ### Real-time Monitoring
 
@@ -169,17 +241,23 @@ Set values in `~/.openclaw/openclaw.json` under `plugins.entries["openclaw-claud
 
 | Command | Description |
 |---------|-------------|
-| `/claude` | Start a new Claude Code session |
-| `/claude_sessions` | List all sessions |
-| `/claude_respond` | Send a follow-up message to a running session |
-| `/claude_fg` | Bring a session to foreground (stream output in real time) |
-| `/claude_bg` | Send a session to background (stop streaming) |
-| `/claude_kill` | Terminate a running session |
-| `/claude_output` | Read buffered output from a session |
-| `/claude_resume` | Resume a previous session or fork to new conversation |
+| `/claude -name <name> <prompt>` | Start a new Claude Code session |
+| `/claude <message>` | Send message to most recent active session in current channel |
+| `/claude_sessions` | List all sessions with status and duration |
+| `/claude_respond <name> <message>` | Send follow-up message to a specific session |
+| `/claude_respond --interrupt <name> <msg>` | Interrupt session then send message |
+| `/claude_fg <name>` | Bring session to foreground (stream output in real-time) |
+| `/claude_bg` | Send current foreground session to background |
+| `/claude_watch <name>` | Subscribe to session's real-time output (no catchup) |
+| `/claude_unwatch <name>` | Unsubscribe from session's real-time output |
+| `/claude_kill <name>` | Terminate a running session |
+| `/claude_output <name>` | Read buffered output from a session |
+| `/claude_resume <name>` | Resume a previous session or fork to new conversation |
 | `/claude_stats` | Show usage metrics (counts, durations, costs) |
+| `/claude_esc` | Send ESC to interrupt current Claude response |
+| `/c_esc <name>` | Send ESC to interrupt specific session (short alias) |
 
-All tools are also available as **chat commands** (`/claude`, `/claude_fg`, etc.) and most as **gateway RPC methods**.
+All commands are **chat commands** that work in Telegram, Discord, and other OpenClaw-supported channels.
 
 > Full parameter tables and response schemas: [docs/API.md](docs/API.md)
 
@@ -191,9 +269,9 @@ The plugin sends real-time notifications to your chat based on session lifecycle
 
 | Emoji | Event | Description |
 |-------|-------|-------------|
-| ↩️ | Launched | Session started successfully |
+| 🚀 | Launched | Session started successfully |
 | 🔔 | Claude asks | Session is waiting for user input — includes output preview |
-| ↩️ | Responded | Follow-up message delivered to session |
+| 💬 | Responded | Follow-up message delivered to session |
 | ✅ | Completed | Session finished successfully |
 | ❌ | Failed | Session encountered an error |
 | ⛔ | Killed | Session was manually terminated |
@@ -235,6 +313,8 @@ Small task (1-2 min): Budget ~$0.01-0.05
 Medium task (5-10 min): Budget ~$0.5-2
 Large task (30+ min): Budget $5-10+
 ```
+
+> **💡 Coding Plan Services**: If your AI service provider offers a **Coding Plan** (non-token-based billing or fixed-price subscription), you can set a much higher budget value (e.g., `100` or `1000`) to prevent sessions from being killed due to budget exhaustion. This is particularly useful for development-focused plans that don't charge per token.
 
 ### 4. Use Foreground Mode for Important Tasks
 

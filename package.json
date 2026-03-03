@@ -1,5 +1,5 @@
 {
-  "name": "@betrue/openclaw-claude-code-plugin",
+  "name": "@dukepan2005/openclaw-claude-code-cli-plugin",
   "version": "1.0.10",
   "type": "commonjs",
   "main": "dist/index.js",
@@ -44,16 +44,16 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alizarion/openclaw-claude-code-plugin.git"
+    "url": "git+https://github.com/dukepan2005/openclaw-claude-code-cli-plugin.git"
   },
-  "homepage": "https://github.com/alizarion/openclaw-claude-code-plugin#readme",
+  "homepage": "https://github.com/dukepan2005/openclaw-claude-code-cli-plugin#readme",
   "bugs": {
-    "url": "https://github.com/alizarion/openclaw-claude-code-plugin/issues"
+    "url": "https://github.com/dukepan2005/openclaw-claude-code-cli-plugin/issues"
   },
   "license": "MIT",
-  "author": "Betrue <hello@betrue.fr>",
+  "author": "dukepan2005",
   "publishConfig": {
     "access": "public"
   },
-  "description": "An OpenClaw plugin that orchestrates Claude Code sessions as managed background processes. Launch, monitor, and control Claude coding agents directly from your AI gateway."
+  "description": "An OpenClaw plugin that orchestrates Claude Code CLI sessions as managed background processes using spawn. Supports any Claude-compatible model service. Forked from alizarion/openclaw-claude-code-plugin."
 }

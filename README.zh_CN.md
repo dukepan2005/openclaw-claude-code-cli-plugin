@@ -18,12 +18,68 @@
 
 ---
 
+## 🔄 关于本项目
+
+### Fork 来源
+
+本项目是从 [alizarion/openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin) fork 而来，原作者为 **Betrue**。
+
+### 核心差异：基于 CLI 的架构
+
+**原项目 (@alizarion/openclaw-claude-code-plugin)**
+
+- 使用 `@anthropic-ai/claude-agent-sdk` npm 包
+- SDK 嵌入在插件内部
+- 仅支持 Anthropic 官方 Claude API
+
+**本项目 (@dukepan2005/openclaw-claude-code-cli-plugin)**
+
+- **通过 `child_process.spawn` 启动 Claude Code CLI 子进程**
+- 通过 stdin/stdout 以 stream-json 格式与 CLI 通信
+- **兼容任何 Claude 协议的模型服务**（Anthropic API、OpenRouter、自定义端点等）
+
+### 为什么选择这种方式？
+
+✅ **模型灵活性**：无需修改插件代码即可使用任何兼容 Claude 的服务
+✅ **配置复用**：直接使用 `claude` CLI 的现有配置（`~/.claude/config.json`）
+✅ **自动更新**：自动受益于 Claude Code CLI 的更新
+✅ **无 SDK 依赖**：消除了 SDK 版本兼容性问题
+
+### 安装方式
+
+由于是 fork 项目，建议从源码安装：
+
+```bash
+# 克隆仓库
+git clone https://github.com/dukepan2005/openclaw-claude-code-cli-plugin.git
+cd openclaw-claude-code-cli-plugin
+
+# 安装依赖并构建
+npm install
+npm run build
+
+# 本地安装插件（开发模式）
+openclaw plugins link .
+openclaw gateway restart
+```
+
+---
+
 ## 🚀 快速开始（5 分钟上手）
 
 ### 第 1 步：安装插件
 
 ```bash
-openclaw plugins install @betrue/openclaw-claude-code-plugin
+# 从本地源码安装（推荐，用于此 fork 项目）
+git clone https://github.com/dukepan2005/openclaw-claude-code-cli-plugin.git
+cd openclaw-claude-code-cli-plugin
+npm install
+npm run build
+openclaw plugins link .
+openclaw gateway restart
+
+# 或从 npm 安装（发布后）
+openclaw plugins install @dukepan2005/openclaw-claude-code-cli-plugin
 openclaw gateway restart
 ```
 
@@ -55,9 +111,14 @@ openclaw gateway restart
 ### 第 3 步：启动第一个会话
 
 在 Telegram 中发送：
+
 ```
-/claude 创建一个 hello world 程序
+/claude -name hello-world 创建一个 hello world 程序
 ```
+
+> **⚠️ 重要提示**：`-name` 参数是**必需的**，用于启动新会话。
+> - 不带 `-name`：向最近的活动会话发送消息
+> - 带 `-name`：创建指定名称的新会话
 
 ---
 
@@ -78,9 +139,7 @@ openclaw gateway restart
 ### 启动会话
 
 ```bash
-/claude 修复登录页面的 bug
-
-/claude --name fix-auth 修复认证问题
+/claude -name fix-auth 修复认证问题
 ```
 
 ### 查看会话
@@ -93,10 +152,24 @@ openclaw gateway restart
 ### 与会话交互
 
 ```bash
+# 快速发送消息（发送到当前频道最近的活动会话）
+/claude 添加单元测试
+
+# 指定要发送消息的会话
 /claude_respond fix-auth 添加单元测试
 
+# 中断并重定向
 /claude_respond --interrupt fix-auth 停下！用另一个方案
+
+# 快速中断（发送 ESC 停止当前响应）
+/claude_esc                    # 中断最近的会话
+/c_esc fix-auth                # 中断指定会话
 ```
+
+> **提示**：
+> - 不带 `-name` 的 `/claude <消息>` 会发送到当前频道最近的活动会话
+> - `/claude_esc` 或 `/c_esc` 发送 ESC 来中断 Claude 的响应
+> - 使用 `/claude_respond <名称> <消息>` 可以指定特定会话
 
 ### 实时监控
 
@@ -173,17 +246,23 @@ openclaw gateway restart
 
 | 命令 | 描述 |
 |------|------|
-| `/claude` | 启动新的 Claude Code 会话 |
-| `/claude_sessions` | 列出所有会话 |
-| `/claude_respond` | 向运行中的会话发送后续消息 |
-| `/claude_fg` | 将会话带到前台（实时流式输出） |
-| `/claude_bg` | 将会话发送到后台（停止流式传输） |
-| `/claude_kill` | 终止运行中的会话 |
-| `/claude_output` | 读取会话的缓冲输出 |
-| `/claude_resume` | 恢复之前的会话或分支到新对话 |
+| `/claude -name <名称> <提示词>` | 启动新的 Claude Code 会话 |
+| `/claude <消息>` | 向当前频道最近的活动会话发送消息 |
+| `/claude_sessions` | 列出所有会话及其状态和时长 |
+| `/claude_respond <名称> <消息>` | 向指定会话发送后续消息 |
+| `/claude_respond --interrupt <名称> <消息>` | 中断会话然后发送消息 |
+| `/claude_fg <名称>` | 将会话带到前台（实时流式输出） |
+| `/claude_bg` | 将当前前台会话发送到后台 |
+| `/claude_watch <名称>` | 订阅会话的实时输出（无追赶） |
+| `/claude_unwatch <名称>` | 取消订阅会话的实时输出 |
+| `/claude_kill <名称>` | 终止运行中的会话 |
+| `/claude_output <名称>` | 读取会话的缓冲输出 |
+| `/claude_resume <名称>` | 恢复之前的会话或分支到新对话 |
 | `/claude_stats` | 显示使用指标（次数、时长、成本） |
+| `/claude_esc` | 发送 ESC 中断当前的 Claude 响应 |
+| `/c_esc <名称>` | 发送 ESC 中断指定会话（简写） |
 
-所有工具也可用作**聊天命令**（`/claude`、`/claude_fg` 等），大多数也可用作 **网关 RPC 方法**。
+所有命令都是可在 Telegram、Discord 和其他 OpenClaw 支持的频道中使用的**聊天命令**。
 
 > 完整参数表和响应模式：[docs/API.md](docs/API.md)
 
@@ -195,9 +274,9 @@ openclaw gateway restart
 
 | 图标 | 事件 | 描述 |
 |------|------|------|
-| ↩️ | Launched | 会话成功启动 |
+| 🚀 | Launched | 会话成功启动 |
 | 🔔 | Claude asks | 会话正在等待用户输入 — 包含输出预览 |
-| ↩️ | Responded | 后续消息已发送到会话 |
+| 💬 | Responded | 后续消息已发送到会话 |
 | ✅ | Completed | 会话成功完成 |
 | ❌ | Failed | 会话遇到错误 |
 | ⛔ | Killed | 会话被手动终止 |
@@ -239,6 +318,8 @@ openclaw gateway restart
 中等任务（5-10分钟）: 预算约 $0.5-2
 大任务（30分钟+）: 预算 $5-10+
 ```
+
+> **💡 Coding Plan 服务**：如果你的 AI 服务提供商提供 **Coding Plan**（非按 token 计费或固定价格订阅），你可以设置一个更大的预算值（例如 `100` 或 `1000`），以防止会话因预算耗尽而被终止。这对于不按 token 收费的面向开发的计划特别有用。
 
 ### 4. 使用前台模式监控重要任务
 

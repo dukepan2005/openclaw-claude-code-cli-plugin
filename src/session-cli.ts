@@ -369,6 +369,8 @@ export class Session {
         // Detect budget exhaustion
         if (msg.subtype === 'error_max_budget_usd') {
           this.budgetExhausted = true;
+          const spent = msg.total_cost_usd?.toFixed(2) ?? 'unknown';
+          console.error(`[Session ${this.id}] 💰 Budget exhausted: spent $${spent} of $${this.maxBudgetUsd} limit`);
           if (this.onBudgetExhausted) {
             this.onBudgetExhausted(this);
           }

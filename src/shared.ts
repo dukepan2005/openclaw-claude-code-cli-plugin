@@ -273,10 +273,19 @@ export function formatSessionListing(session: Session): string {
 
   // Show error details for failed sessions
   if (session.status === "failed") {
-    const errorDetail = session.error
-      || (session.result?.subtype && session.result.subtype !== "success" ? session.result.subtype : null);
-    if (errorDetail) {
-      lines.push(`   ⚠️ ${errorDetail}`);
+    // Budget exhausted: show cost info
+    if (session.budgetExhausted) {
+      const spent = session.costUsd.toFixed(2);
+      const limit = session.maxBudgetUsd.toFixed(2);
+      lines.push(`   💰 Budget exhausted: spent $${spent} of $${limit}`);
+    }
+    // Other errors: show error detail or subtype
+    else {
+      const errorDetail = session.error
+        || (session.result?.subtype && session.result.subtype !== "success" ? session.result.subtype : null);
+      if (errorDetail) {
+        lines.push(`   ⚠️ ${errorDetail}`);
+      }
     }
   }
 
