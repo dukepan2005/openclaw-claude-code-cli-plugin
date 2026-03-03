@@ -177,13 +177,13 @@ export class SessionManager {
 
     session.start();
 
-    // Level 1: Send ↩️ Launched notification to Telegram (informational, no IPC wake)
+    // Level 1: Send 🚀 Launched notification to Telegram (informational, no IPC wake)
     const promptSummary = session.prompt.length > 80
       ? session.prompt.slice(0, 80) + "..."
       : session.prompt;
     this.deliverToTelegram(
       session,
-      `↩️ [${session.name}] Launched:\n${promptSummary}`,
+      `🚀 [${session.name}] Launched:\n${promptSummary}`,
       "launched",
     );
 
@@ -304,8 +304,9 @@ export class SessionManager {
    * Parse a session's originChannel into --deliver CLI args.
    *
    * originChannel formats:
-   *   "telegram|accountId|chatId"  → 3 segments (full)
-   *   "telegram|chatId"            → 2 segments (no account)
+   *   "telegram|chatId"                    → 2 segments (no account)
+   *   "telegram|accountId|chatId"          → 3 segments (with account)
+   *   "telegram|accountId|chatId|threadId" → 4 segments (with topic/thread)
    *
    * Returns empty array if channel is missing/invalid (safe no-op).
    */
@@ -317,12 +318,30 @@ export class SessionManager {
     if (parts.length < 2) {
       return [];
     }
-    if (parts.length >= 3) {
-      // "channel|account|target" (target may itself contain pipes, so rejoin)
-      return ["--deliver", "--reply-channel", parts[0], "--reply-account", parts[1], "--reply-to", parts.slice(2).join("|")];
+
+    const baseArgs = ["--deliver", "--reply-channel", parts[0]];
+
+    if (parts.length >= 4) {
+      // 4-segment format: channel|account|chatId|threadId
+      const account = parts[1];
+      const chatId = parts[2];
+      const threadId = parts[3];
+      const replyTo = threadId ? `${chatId}|${threadId}` : chatId;
+      if (account) {
+        return [...baseArgs, "--reply-account", account, "--reply-to", replyTo];
+      }
+      return [...baseArgs, "--reply-to", replyTo];
+    } else if (parts.length === 3) {
+      // 3-segment format: channel|account|chatId
+      const account = parts[1];
+      const chatId = parts[2];
+      if (account) {
+        return [...baseArgs, "--reply-account", account, "--reply-to", chatId];
+      }
+      return [...baseArgs, "--reply-to", chatId];
     }
-    // "channel|target" (no account)
-    return ["--deliver", "--reply-channel", parts[0], "--reply-to", parts[1]];
+    // 2-segment format: channel|chatId
+    return [...baseArgs, "--reply-to", parts[1]];
   }
 
   private wakeAgent(session: Session, eventText: string, telegramText: string, label: string): void {
@@ -350,8 +369,8 @@ export class SessionManager {
    * Send an informational notification to Telegram WITHOUT waking the agent.
    *
    * Used for notifications that are user-monitoring only (Level 1 — deliver only):
-   *   ↩️ Launched  — session started with initial prompt
-   *   ↩️ Responded — user replied to a waiting session
+   *   🚀 Launched  — session started with initial prompt
+   *   💬 Responded — user replied to a waiting session
    *   ❌ Failed    — session failed
    *   ⛔ Killed    — session was killed
    *
@@ -574,6 +593,38 @@ export class SessionManager {
 
   get(id: string): Session | undefined {
     return this.sessions.get(id);
+  }
+
+  /**
+   * Find the most recently active running session for a given channel.
+   * Priority: sessions waiting for input > other running sessions
+   */
+  findMostRecentSessionForChannel(channelId: string): Session | null {
+    const running = this.list("running");
+
+    const matching = running.filter(s =>
+      s.originChannel === channelId ||
+      s.foregroundChannels.has(channelId)
+    );
+
+    if (matching.length === 0) return null;
+
+    return matching.sort((a, b) => {
+      const aScore = a.lastActivityAt + (a.isWaitingForInput ? 100000 : 0);
+      const bScore = b.lastActivityAt + (b.isWaitingForInput ? 100000 : 0);
+      return bScore - aScore;
+    })[0];
+  }
+
+  /**
+   * Check if channel has any running sessions.
+   */
+  hasRunningSessionForChannel(channelId: string): boolean {
+    const running = this.list("running");
+    return running.some(s =>
+      s.originChannel === channelId ||
+      s.foregroundChannels.has(channelId)
+    );
   }
 
   list(filter?: SessionStatus | "all"): Session[] {

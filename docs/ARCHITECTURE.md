@@ -25,8 +25,9 @@ User (Telegram/Discord) → OpenClaw Gateway → Agent → Plugin Tools → Clau
 - Persists completed sessions for resume (up to `maxPersistedSessions`)
 - GC interval cleans up stale sessions every 5 minutes
 
-### 3. Session (`src/session.ts`)
-- Wraps a single Claude Code PTY process via `@anthropic-ai/claude-agent-sdk`
+### 3. Session (`src/session-cli.ts`)
+
+- Wraps a single Claude Code CLI process via `child_process.spawn`
 - Handles output buffering, foreground streaming, and multi-turn conversation
 - Implements waiting-for-input detection with 15s safety-net timer
 - Double-firing guard (`waitingForInputFired`) prevents duplicate wake events
@@ -96,6 +97,65 @@ Claude Code process exits
 4. **Background notification suppression** — Completion/failure suppressed in background; orchestrator handles user-facing summaries
 5. **maxAutoResponds limit** — Prevents infinite agent loops; resets on user interaction (`userInitiated: true`)
 6. **Channel propagation** — Tools accept optional `channel` param to route to correct user instead of falling back to "unknown"
+
+## OpenClaw Context Types
+
+The plugin receives context from OpenClaw when tools and commands are invoked. Understanding these types is essential for proper channel resolution and message routing.
+
+### PluginCommandContext
+
+Passed to command handlers registered via `api.registerCommand()`:
+
+```typescript
+type PluginCommandContext = {
+  senderId?: string;          // Sender's identifier (e.g., Telegram user ID)
+  channel: string;            // The channel/surface (e.g., "telegram", "discord")
+  channelId?: ChannelId;      // Provider channel id (e.g., "telegram")
+  isAuthorizedSender: boolean;// Whether the sender is on the allowlist
+  args?: string;              // Raw command arguments after the command name
+  commandBody: string;        // The full normalized command body
+  config: OpenClawConfig;     // Current OpenClaw configuration
+  from?: string;              // Raw "From" value (source, with group/topic info)
+  to?: string;                // Raw "To" value (target chat ID)
+  accountId?: string;         // Account id for multi-account channels
+  messageThreadId?: number;   // Thread/topic id if available
+};
+```
+
+### ctx.to vs ctx.from
+
+- **`ctx.to`** — The TARGET chat where the message was sent. This is where replies should go.
+  - Example: `"telegram:-1003889434099"` (a Telegram group)
+- **`ctx.from`** — The SOURCE with potentially more complex structure.
+  - Example: `"telegram:group:-1003889434099:topic:2"` (includes group and topic info)
+
+**Use `ctx.to` for channel resolution** because we want to reply to the chat/group, not to the individual sender.
+
+### OpenClawPluginToolContext
+
+Passed to tool factories registered via `api.registerTool((ctx) => ...)`:
+
+```typescript
+type OpenClawPluginToolContext = {
+  config?: OpenClawConfig;     // Full OpenClaw configuration
+  workspaceDir?: string;       // Agent's workspace directory
+  agentDir?: string;           // Agent's config directory
+  agentId?: string;            // Agent identifier
+  sessionKey?: string;         // Session key for the conversation
+  messageChannel?: string;     // Channel to send messages to
+  agentAccountId?: string;     // Agent's account ID
+  sandboxed?: boolean;         // Whether running in sandbox mode
+};
+```
+
+### Channel Resolution
+
+The `resolveOriginChannel()` function in `src/shared.ts` converts context to a normalized channel string:
+
+- Format: `channel|account|target|threadId` (segments vary)
+- Example: `"telegram|default|-1003889434099|2"` (Telegram group with topic)
+
+See `src/shared.ts` for the full implementation with detailed comments.
 
 ## Configuration
 

@@ -66,10 +66,10 @@ export function registerClaudeRespondCommand(api: any): void {
         // Reset auto-respond counter (user-initiated)
         session.resetAutoRespond();
 
-        // Level 1: Send ↩️ Responded notification to Telegram
+        // Level 1: Send 💬 Responded notification to Telegram
         if (sessionManager) {
           const respondMsg = [
-            `↩️ [${session.name}] Responded:`,
+            `💬 [${session.name}] Responded:`,
             message.length > 200 ? message.slice(0, 200) + "..." : message,
           ].join("\n");
           sessionManager.deliverToTelegram(session, respondMsg, "responded");

@@ -1,4 +1,4 @@
-import type { Session } from "./session";
+import type { Session } from "./session-cli";
 import type { SessionManager, SessionMetrics } from "./session-manager";
 import type { NotificationRouter } from "./notifications";
 import type { PluginConfig } from "./types";
@@ -43,9 +43,31 @@ export function setNotificationRouter(nr: NotificationRouter | null): void {
 /**
  * Resolve origin channel from an OpenClaw command/tool context.
  *
- * Attempts to build a "channel|target" string from context properties.
- * Command context has: ctx.channel, ctx.senderId, ctx.chatId, ctx.id
- * Tool execute receives just an _id (tool call ID like "toolu_xxx").
+ * ## PluginCommandContext (from OpenClaw core)
+ *
+ * The ctx object passed to command handlers contains:
+ *   - ctx.senderId: Sender's identifier (e.g., Telegram user ID)
+ *   - ctx.channel: The channel/surface (e.g., "telegram", "discord")
+ *   - ctx.channelId: Provider channel id (e.g., "telegram")
+ *   - ctx.isAuthorizedSender: Whether the sender is on the allowlist
+ *   - ctx.args: Raw command arguments after the command name
+ *   - ctx.commandBody: The full normalized command body
+ *   - ctx.config: Current OpenClaw configuration
+ *   - ctx.from: Raw "From" value (channel-scoped id, e.g., "telegram:group:-100...:topic:2")
+ *   - ctx.to: Raw "To" value (channel-scoped id, e.g., "telegram:-1003889434099")
+ *   - ctx.accountId: Account id for multi-account channels
+ *   - ctx.messageThreadId: Thread/topic id if available
+ *
+ * ## Why use ctx.to instead of ctx.from?
+ *
+ *   - ctx.to is the TARGET chat where the message was sent (the group/channel)
+ *   - ctx.from is the SOURCE with potentially more complex structure
+ *   - For replies/notifications, we want to send to the chat (ctx.to), not the sender
+ *
+ * ## Channel format (output):
+ *   - 2 segments: "channel|target" (basic)
+ *   - 3 segments: "channel|account|target" (with account)
+ *   - 4 segments: "channel|account|target|threadId" (with topic/thread)
  *
  * Falls back to config.fallbackChannel when the real channel info
  * is not available. If no fallbackChannel is configured, returns
@@ -57,16 +79,57 @@ export function resolveOriginChannel(ctx: any, explicitChannel?: string): string
   if (explicitChannel && String(explicitChannel).includes("|")) {
     return String(explicitChannel);
   }
-  // Try structured channel info from command context
+
+  const channel = ctx?.channel || "telegram";
+  const accountId = ctx?.accountId || "";
+  const threadId = ctx?.messageThreadId || ctx?.threadId || null;
+
+  // Parse ctx.to to extract chatId (format: "telegram:-1003889434099" or "telegram:123456789")
+  // Note: ctx.to is ALWAYS the simple format without group:/topic: prefixes
+  // The complex format (telegram:group:-100...:topic:2) is in ctx.from, not ctx.to
+  if (ctx?.to && typeof ctx.to === "string") {
+    const toParts = ctx.to.split(":");
+    if (toParts.length >= 2) {
+      const chatId = toParts.slice(1).join(":");  // e.g., "-1003889434099" or "123456789"
+      if (accountId && threadId) {
+        return `${channel}|${accountId}|${chatId}|${threadId}`;
+      } else if (accountId) {
+        return `${channel}|${accountId}|${chatId}`;
+      } else if (threadId) {
+        return `${channel}||${chatId}|${threadId}`;
+      }
+      return `${channel}|${chatId}`;
+    }
+  }
+
+  // Fallback: Try structured channel info from command context
   if (ctx?.channel && ctx?.chatId) {
-    return `${ctx.channel}|${ctx.chatId}`;
+    const account = ctx?.accountId || ctx?.account;
+    if (account) {
+      return threadId
+        ? `${ctx.channel}|${account}|${ctx.chatId}|${threadId}`
+        : `${ctx.channel}|${account}|${ctx.chatId}`;
+    }
+    return threadId
+      ? `${ctx.channel}||${ctx.chatId}|${threadId}`
+      : `${ctx.channel}|${ctx.chatId}`;
   }
   if (ctx?.channel && ctx?.senderId) {
-    return `${ctx.channel}|${ctx.senderId}`;
+    const account = ctx?.accountId || ctx?.account;
+    if (account) {
+      return threadId
+        ? `${ctx.channel}|${account}|${ctx.senderId}|${threadId}`
+        : `${ctx.channel}|${account}|${ctx.senderId}`;
+    }
+    return threadId
+      ? `${ctx.channel}||${ctx.senderId}|${threadId}`
+      : `${ctx.channel}|${ctx.senderId}`;
   }
   // If the context id looks like a numeric telegram chat id
   if (ctx?.id && /^-?\d+$/.test(String(ctx.id))) {
-    return `telegram|${ctx.id}`;
+    return threadId
+      ? `telegram||${ctx.id}|${threadId}`
+      : `telegram|${ctx.id}`;
   }
   // If channelId is already in "channel|target" format, pass through
   if (ctx?.channelId && String(ctx.channelId).includes("|")) {
@@ -205,7 +268,25 @@ export function formatSessionListing(session: Session): string {
 
   // Show resume info if this session was resumed
   if (session.resumeSessionId) {
-    lines.push(`   ↩️  Resumed from: ${session.resumeSessionId}${session.forkSession ? " (forked)" : ""}`);
+    lines.push(`   🔗  Resumed from: ${session.resumeSessionId}${session.forkSession ? " (forked)" : ""}`);
+  }
+
+  // Show error details for failed sessions
+  if (session.status === "failed") {
+    // Budget exhausted: show cost info
+    if (session.budgetExhausted) {
+      const spent = session.costUsd.toFixed(2);
+      const limit = session.maxBudgetUsd.toFixed(2);
+      lines.push(`   💰 Budget exhausted: spent $${spent} of $${limit}`);
+    }
+    // Other errors: show error detail or subtype
+    else {
+      const errorDetail = session.error
+        || (session.result?.subtype && session.result.subtype !== "success" ? session.result.subtype : null);
+      if (errorDetail) {
+        lines.push(`   ⚠️ ${errorDetail}`);
+      }
+    }
   }
 
   return lines.join("\n");

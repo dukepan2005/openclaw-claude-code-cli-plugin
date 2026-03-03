@@ -1,5 +1,4 @@
-// SDK types are imported from "@anthropic-ai/claude-agent-sdk"
-// We define our own types for the plugin's internal state
+// Types for the plugin's internal state
 
 /**
  * Context provided by OpenClaw's tool factory pattern.

@@ -14,6 +14,9 @@ import { registerClaudeBgCommand } from "./src/commands/claude-bg";
 import { registerClaudeResumeCommand } from "./src/commands/claude-resume";
 import { registerClaudeRespondCommand } from "./src/commands/claude-respond";
 import { registerClaudeStatsCommand } from "./src/commands/claude-stats";
+import { registerClaudeWatchCommand } from "./src/commands/claude-watch";
+import { registerClaudeUnwatchCommand } from "./src/commands/claude-unwatch";
+import { registerClaudeInterruptCommand } from "./src/commands/claude-interrupt";
 import { registerGatewayMethods } from "./src/gateway";
 import { SessionManager } from "./src/session-manager";
 import { NotificationRouter } from "./src/notifications";
@@ -38,7 +41,7 @@ export function register(api: any) {
     console.log(`[PLUGIN]   ctx.sessionKey=${ctx?.sessionKey}`);
     console.log(`[PLUGIN]   ctx.workspaceDir=${ctx?.workspaceDir}`);
     console.log(`[PLUGIN]   ctx.sandboxed=${ctx?.sandboxed}`);
-    console.log(`[PLUGIN]   full ctx: ${JSON.stringify(ctx, null, 2)}`);
+    // console.log(`[PLUGIN]   full ctx: ${JSON.stringify(ctx, null, 2)}`);
   };
   api.registerTool((ctx: any) => { logCtx("claude_launch", ctx); return makeClaudeLaunchTool(ctx); }, { optional: false });
   api.registerTool((ctx: any) => { logCtx("claude_sessions", ctx); return makeClaudeSessionsTool(ctx); }, { optional: false });
@@ -58,6 +61,9 @@ export function register(api: any) {
   registerClaudeResumeCommand(api);
   registerClaudeRespondCommand(api);
   registerClaudeStatsCommand(api);
+  registerClaudeWatchCommand(api);
+  registerClaudeUnwatchCommand(api);
+  registerClaudeInterruptCommand(api);
 
   // Gateway RPC methods (Task 17)
   registerGatewayMethods(api);
@@ -83,16 +89,63 @@ export function register(api: any) {
       // Uses `openclaw message send` CLI since the plugin API does not expose
       // a runtime.sendMessage method for proactive outbound messages.
       //
-      // channelId format: "channel|target" (e.g. "telegram:123456789"),
-      //   "channel|account|target" (e.g. "telegram:my-agent:123456789"),
+      // channelId format:
+      //   "channel|target" (e.g. "telegram|123456789")
+      //   "channel|account|target" (e.g. "telegram|my-agent|123456789")
+      //   "channel|account|target|threadId" (e.g. "telegram|my-agent|-1001234567890|42")
       //   or just a bare chat ID.
-      // Fallback channel comes from config.fallbackChannel (e.g. "telegram:123456789").
+      // Fallback channel comes from config.fallbackChannel (e.g. "telegram|123456789").
+
+      // Message queue to serialize sends and avoid rate limiting
+      interface QueuedMessage {
+        channelId: string;
+        text: string;
+        channel: string;
+        target: string;
+        account?: string;
+        threadId?: string;
+      }
+      const messageQueue: QueuedMessage[] = [];
+      let isSending = false;
+
+      const processQueue = () => {
+        if (isSending || messageQueue.length === 0) return;
+        isSending = true;
+        const msg = messageQueue.shift()!;
+
+        const cliArgs = ["message", "send", "--channel", msg.channel];
+        if (msg.account) {
+          cliArgs.push("--account", msg.account);
+        }
+        if (msg.threadId) {
+          cliArgs.push("--thread-id", msg.threadId);
+        }
+        cliArgs.push("--target", msg.target, "-m", msg.text);
+
+        console.log(`[claude-code] sendMessage CLI args: ${cliArgs.map((a: string) => a.includes('\n') ? `<multiline:${a.length}chars>` : a).join(' ')} (queue=${messageQueue.length})`);
+
+        execFile("openclaw", cliArgs, { timeout: 30_000 }, (err, stdout, stderr) => {
+          if (err) {
+            const exitCode = (err as any).code ?? 'unknown';
+            console.error(`[claude-code] sendMessage CLI ERROR: ${err.message} (exitCode=${exitCode})`);
+            if (stderr) console.error(`[claude-code] sendMessage CLI STDERR: ${stderr}`);
+            if (stdout) console.error(`[claude-code] sendMessage CLI STDOUT: ${stdout}`);
+          } else {
+            console.log(`[claude-code] sendMessage CLI OK -> channel=${msg.channel}, target=${msg.target}${msg.account ? `, account=${msg.account}` : ""}${msg.threadId ? `, threadId=${msg.threadId}` : ""}`);
+            if (stdout.trim()) console.log(`[claude-code] sendMessage CLI STDOUT: ${stdout.trim()}`);
+          }
+          isSending = false;
+          // Process next message with small delay to avoid rate limiting
+          setTimeout(processQueue, 100);
+        });
+      };
 
       const sendMessage = (channelId: string, text: string) => {
         // Resolve channel and target from channelId
         // Expected formats:
-        //   "telegram:123456789" → channel=telegram, target=123456789
-        //   "discord:987654321" → channel=discord, target=987654321
+        //   "telegram|123456789" → channel=telegram, target=123456789
+        //   "telegram|account|123456789" → channel=telegram, account=account, target=123456789
+        //   "telegram|account|123456789|42" → with threadId=42
         //   "123456789"         → channel=telegram (fallback), target=123456789
         //   "toolu_xxxx"        → not a real channel, use fallback
 
@@ -104,12 +157,12 @@ export function register(api: any) {
         if (pluginConfig.fallbackChannel?.includes("|")) {
           const fbParts = pluginConfig.fallbackChannel.split("|");
           if (fbParts.length >= 3 && fbParts[0] && fbParts[1]) {
-            // channel:account:target format (e.g. "telegram:my-agent:123456789")
+            // channel|account|target format (e.g. "telegram|my-agent|123456789")
             fallbackChannel = fbParts[0];
             fallbackAccount = fbParts[1];
             fallbackTarget = fbParts.slice(2).join("|");
           } else if (fbParts[0] && fbParts[1]) {
-            // channel:target format (e.g. "telegram:123456789")
+            // channel|target format (e.g. "telegram|123456789")
             fallbackChannel = fbParts[0];
             fallbackTarget = fbParts[1];
           }
@@ -118,6 +171,7 @@ export function register(api: any) {
         let channel = fallbackChannel;
         let target = fallbackTarget;
         let account: string | undefined = fallbackAccount;
+        let threadId: string | undefined;
 
         if (channelId === "unknown" || !channelId) {
           // Tool-launched sessions have originChannel="unknown" — always use fallback
@@ -129,13 +183,19 @@ export function register(api: any) {
           }
         } else if (channelId.includes("|")) {
           const parts = channelId.split("|");
-          if (parts.length >= 3) {
-            // channel:account:target format (e.g. "telegram:my-agent:123456789")
+          if (parts.length >= 4) {
+            // 4-segment format: channel|account|target|threadId
             channel = parts[0];
-            account = parts[1];
-            target = parts.slice(2).join("|");
+            account = parts[1] || undefined;  // May be empty
+            target = parts[2];
+            threadId = parts[3];
+          } else if (parts.length === 3) {
+            // 3-segment format: channel|account|target
+            channel = parts[0];
+            account = parts[1] || undefined;  // May be empty
+            target = parts[2];
           } else if (parts[0] && parts[1]) {
-            // channel:target format (e.g. "telegram:123456789")
+            // 2-segment format: channel|target
             channel = parts[0];
             target = parts[1];
           }
@@ -152,24 +212,11 @@ export function register(api: any) {
           return;
         }
 
-        console.log(`[claude-code] sendMessage -> channel=${channel}, target=${target}${account ? `, account=${account}` : ""}, textLen=${text.length}`);
+        console.log(`[claude-code] sendMessage -> channel=${channel}, target=${target}${account ? `, account=${account}` : ""}${threadId ? `, threadId=${threadId}` : ""}, textLen=${text.length}`);
 
-        // Build CLI args, including --account when a 3-segment channel format is used
-        const cliArgs = ["message", "send", "--channel", channel];
-        if (account) {
-          cliArgs.push("--account", account);
-        }
-        cliArgs.push("--target", target, "-m", text);
-
-        execFile("openclaw", cliArgs, { timeout: 15_000 }, (err, stdout, stderr) => {
-          if (err) {
-            console.error(`[claude-code] sendMessage CLI ERROR: ${err.message}`);
-            if (stderr) console.error(`[claude-code] sendMessage CLI STDERR: ${stderr}`);
-          } else {
-            console.log(`[claude-code] sendMessage CLI OK -> channel=${channel}, target=${target}${account ? `, account=${account}` : ""}`);
-            if (stdout.trim()) console.log(`[claude-code] sendMessage CLI STDOUT: ${stdout.trim()}`);
-          }
-        });
+        // Add to queue instead of sending directly
+        messageQueue.push({ channelId, text, channel, target, account, threadId });
+        processQueue();
       };
 
       nr = new NotificationRouter(sendMessage);

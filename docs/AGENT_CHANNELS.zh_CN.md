@@ -434,3 +434,9 @@ claude_launch(prompt="Fix the auth middleware bug", name="fix-auth")
 ```
 
 使用 2 段格式 —— 通知通过任何 Telegram bot 是默认的发送到聊天 `9999999999`。`extractAgentId` 对此格式返回 `undefined`，因此心跳代理 ID 查找不适用。
+
+---
+
+## 相关文档
+
+- **[MESSAGE_ROUTING_CN.md](MESSAGE_ROUTING_CN.md)** — 消息路由机制详解：频道解析、通知层级、唤醒机制

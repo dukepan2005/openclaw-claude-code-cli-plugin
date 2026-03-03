@@ -12,6 +12,7 @@ tests/
 _bmad/
 _bmad-output/
 .claude/commands/bmad-*
+.claude/settings.local.json
 
 # BMAD Method - generated artifacts
 docs/prd/

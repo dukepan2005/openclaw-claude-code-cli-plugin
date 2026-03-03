@@ -1,4 +1,6 @@
 import { spawn, ChildProcess } from 'child_process';
+import { existsSync, statSync } from 'fs';
+import { resolve } from 'path';
 import type { SessionConfig, SessionStatus, PermissionMode } from './types';
 import { pluginConfig } from './shared';
 import { nanoid } from 'nanoid';
@@ -48,8 +50,14 @@ export class Session {
   startedAt: number;
   completedAt?: number;
 
+  // Activity tracking for auto-routing
+  lastActivityAt: number = Date.now();
+
   // Output
   outputBuffer: string[] = [];
+
+  // Stderr buffer for error diagnostics
+  private stderrBuffer: string[] = [];
 
   // Result from CLI
   result?: {
@@ -81,6 +89,11 @@ export class Session {
   // Flags
   budgetExhausted: boolean = false;
   private waitingForInputFired: boolean = false;
+
+  /** True if session is waiting for user input (after end-of-turn) */
+  get isWaitingForInput(): boolean {
+    return this.status === 'running' && this.waitingForInputFired;
+  }
 
   // Auto-respond safety cap: tracks consecutive agent-initiated responds
   autoRespondCount: number = 0;
@@ -115,9 +128,30 @@ export class Session {
 
   async start(): Promise<void> {
     try {
+      // Validate workdir
+      if (!existsSync(this.workdir)) {
+        this.status = 'failed';
+        this.error = `Working directory does not exist: ${this.workdir}`;
+        this.completedAt = Date.now();
+        console.error(`[Session ${this.id}] ${this.error}`);
+        return;
+      }
+      if (!statSync(this.workdir).isDirectory()) {
+        this.status = 'failed';
+        this.error = `Working directory is not a directory: ${this.workdir}`;
+        this.completedAt = Date.now();
+        console.error(`[Session ${this.id}] ${this.error}`);
+        return;
+      }
+      // Warn if workdir is root (likely a misconfiguration)
+      if (this.workdir === '/' || this.workdir === process.cwd()) {
+        console.warn(`[Session ${this.id}] Warning: workdir is "${this.workdir}" — this may not be a valid project directory. Consider setting defaultWorkdir in plugin config.`);
+      }
+
       // Build CLI arguments
       const args = [
         '--print',
+        '--verbose',  // Required for --output-format=stream-json
         '--output-format', 'stream-json',
         '--include-partial-messages',
         '--input-format', 'stream-json',  // Enable multi-turn via stdin
@@ -155,10 +189,15 @@ export class Session {
         this.parseOutput(data.toString('utf-8'));
       });
 
-      // Setup stderr handler (for debugging)
+      // Setup stderr handler (for debugging and error capture)
       this.process.stderr?.on('data', (data: Buffer) => {
         const stderrText = data.toString('utf-8');
         console.error(`[Session ${this.id} stderr]:`, stderrText);
+        // Buffer stderr for error reporting
+        this.stderrBuffer.push(stderrText);
+        if (this.stderrBuffer.length > 20) {
+          this.stderrBuffer.shift();
+        }
       });
 
       // Handle process exit
@@ -168,6 +207,12 @@ export class Session {
           this.completedAt = Date.now();
           this.clearSafetyNetTimer();
           if (this.idleTimer) clearTimeout(this.idleTimer);
+
+          // Capture stderr as error message if process failed
+          if (code !== 0 && !this.error && this.stderrBuffer.length > 0) {
+            this.error = this.stderrBuffer.join('\n').trim().slice(-500);
+          }
+
           if (this.onComplete) {
             this.onComplete(this);
           }
@@ -178,7 +223,12 @@ export class Session {
       this.process.on('error', (err: Error) => {
         console.error(`[Session ${this.id} process error]:`, err);
         this.status = 'failed';
-        this.error = err.message;
+        // Provide more helpful error message for common cases
+        if (err.message.includes('ENOENT')) {
+          this.error = `claude CLI not found. Please ensure Claude Code CLI is installed and in PATH.`;
+        } else {
+          this.error = err.message;
+        }
         this.completedAt = Date.now();
       });
 
@@ -238,6 +288,8 @@ export class Session {
    * Handle a single message from the CLI
    */
   private handleMessage(msg: any): void {
+    // Update activity timestamp for auto-routing
+    this.lastActivityAt = Date.now();
     // Reset the safety-net timer on every incoming message
     this.resetSafetyNetTimer();
 
@@ -317,6 +369,8 @@ export class Session {
         // Detect budget exhaustion
         if (msg.subtype === 'error_max_budget_usd') {
           this.budgetExhausted = true;
+          const spent = msg.total_cost_usd?.toFixed(2) ?? 'unknown';
+          console.error(`[Session ${this.id}] 💰 Budget exhausted: spent $${spent} of $${this.maxBudgetUsd} limit`);
           if (this.onBudgetExhausted) {
             this.onBudgetExhausted(this);
           }
@@ -412,6 +466,7 @@ export class Session {
       throw new Error('Process stdin not available');
     }
 
+    this.lastActivityAt = Date.now();
     this.resetIdleTimer();
     this.waitingForInputFired = false;
 
