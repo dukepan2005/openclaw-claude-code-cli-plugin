@@ -545,7 +545,7 @@ npm install -g @anthropic-ai/claude-code
 - [API Documentation](./API.md) - Detailed tool and command parameters
 - [Architecture](./ARCHITECTURE.md) - In-depth plugin architecture
 - [Development Guide](./DEVELOPMENT.md) - Developer documentation
-- [Safety Guide](./safety.md) - Safety checks and best practices
+- [Prelaunch Guards](./PRELAUNCH_GUARDS.md) - Safety checks and best practices
 
 ---
 

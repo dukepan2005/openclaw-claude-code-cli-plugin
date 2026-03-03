@@ -543,7 +543,7 @@ npm install -g @anthropic-ai/claude-code
 - [API 文档](./API.md) - 详细的工具和命令参数
 - [架构文档](./ARCHITECTURE.md) - 深入了解插件架构
 - [开发文档](./DEVELOPMENT.md) - 开发者指南
-- [安全文档](./safety.md) - 安全检查和最佳实践
+- [预启动守卫](./PRELAUNCH_GUARDS_CN.md) - 安全检查和最佳实践
 
 ---
 

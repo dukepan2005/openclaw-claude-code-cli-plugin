@@ -434,3 +434,9 @@ Any workspace under `/home/user` routes to `default-bot`, **except** `/home/user
 ```
 
 Uses the 2-segment format — the notification goes to chat `9999999999` via whichever Telegram bot is the default. `extractAgentId` returns `undefined` for this format, so heartbeat agent-ID lookup won't apply.
+
+---
+
+## See Also
+
+- **[MESSAGE_ROUTING.md](MESSAGE_ROUTING.md)** — Detailed message routing mechanism: channel resolution, notification levels, wake mechanism

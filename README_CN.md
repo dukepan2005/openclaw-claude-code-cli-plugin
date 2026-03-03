@@ -358,14 +358,13 @@ openclaw gateway restart
 
 | 文档 | 描述 |
 |------|------|
-| [docs/getting-started.md](docs/getting-started.md) | 完整设置指南 |
-| [docs/API.md](docs/API.md) | 工具、命令和 RPC 方法 |
-| [docs/safety.md](docs/safety.md) | 安全检查和故障排除 |
-| [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | 通知架构 |
+| **[docs/USER_GUIDE_CN.md](docs/USER_GUIDE_CN.md)** | 用户使用指南（中文） |
+| [docs/TOOLS_REFERENCE_CN.md](docs/TOOLS_REFERENCE_CN.md) | 工具、命令和 RPC 方法（中文） |
+| [docs/PRELAUNCH_GUARDS_CN.md](docs/PRELAUNCH_GUARDS_CN.md) | 预启动安全检查和故障排除（中文） |
+| **[docs/MESSAGE_ROUTING_CN.md](docs/MESSAGE_ROUTING_CN.md)** | 消息路由机制：频道解析、通知层级、唤醒机制（中文） |
 | **[docs/AGENT_CHANNELS_CN.md](docs/AGENT_CHANNELS_CN.md)** | 多代理设置和频道配置（中文） |
-| [docs/AGENT_CHANNELS.md](docs/AGENT_CHANNELS.md) | 多代理设置和频道配置（English） |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构概览 |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 开发指南 |
+| [docs/ARCHITECTURE_CN.md](docs/ARCHITECTURE_CN.md) | 架构概览（中文） |
+| [docs/DEVELOPMENT_CN.md](docs/DEVELOPMENT_CN.md) | 开发指南（中文） |
 
 ---
 

@@ -315,10 +315,10 @@ npm install -g @anthropic-ai/claude-code
 
 | Document | Description |
 |----------|-------------|
-| [docs/getting-started.md](docs/getting-started.md) | Full setup guide and first-launch walkthrough |
-| [docs/API.md](docs/API.md) | Tools, commands, and RPC methods |
-| [docs/safety.md](docs/safety.md) | Pre-launch safety checks and troubleshooting |
-| [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Notification architecture, delivery model, and wake mechanism |
+| **[docs/USER_GUIDE_EN.md](docs/USER_GUIDE_EN.md)** | User guide and first-launch walkthrough |
+| [docs/TOOLS_REFERENCE.md](docs/TOOLS_REFERENCE.md) | Tools, commands, and RPC methods |
+| [docs/PRELAUNCH_GUARDS.md](docs/PRELAUNCH_GUARDS.md) | Pre-launch safety checks and troubleshooting |
+| [docs/MESSAGE_ROUTING.md](docs/MESSAGE_ROUTING.md) | Message routing: channel resolution, notification levels, wake mechanism |
 | [docs/AGENT_CHANNELS.md](docs/AGENT_CHANNELS.md) | Multi-agent setup, notification routing, and workspace mapping |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture overview and component breakdown |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guide, project structure, and build instructions |
