@@ -1,4 +1,6 @@
-# OpenClaw Claude Code Plugin (中文)
+# OpenClaw Claude Code CLI Plugin (中文)
+
+> **⚠️ 重要声明**：本项目是从 [alizarion/openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin) fork 而来。**本 fork 中 99.99999% 的代码更改都是由 Claude Code（Anthropic 的 AI 编程助手）开发的**。本 fork 主要将架构从基于 SDK 改为基于 CLI 的实现，几乎所有实现工作都由 Claude Code 完成。
 
 通过 Telegram、Discord 等聊天频道，远程控制 Claude Code 执行开发任务。
 
@@ -22,7 +24,7 @@
 
 ### Fork 来源
 
-本项目是从 [alizarion/openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin) fork 而来，原作者为 **Betrue**。
+本项目是从 [alizarion/openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin) fork 而来，原作者为 **alizarion**。
 
 ### 核心差异：基于 CLI 的架构
 
@@ -41,9 +43,16 @@
 ### 为什么选择这种方式？
 
 ✅ **模型灵活性**：无需修改插件代码即可使用任何兼容 Claude 的服务
+
 ✅ **配置复用**：直接使用 `claude` CLI 的现有配置（`~/.claude/config.json`）
+
 ✅ **自动更新**：自动受益于 Claude Code CLI 的更新
+
 ✅ **无 SDK 依赖**：消除了 SDK 版本兼容性问题
+
+### 🙏 致谢
+
+**特别感谢 [@alizarion](https://github.com/alizarion)** 创建了原始的 [openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin) 项目。本 fork 建立在原项目优秀的架构和基础之上。
 
 ### 安装方式
 

@@ -1,4 +1,6 @@
-# OpenClaw Claude Code Plugin
+# OpenClaw Claude Code CLI Plugin
+
+> **⚠️ Important Attribution**: This project is a fork of [alizarion/openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin). **99.99999% of the code changes in this fork were developed by Claude Code** (Anthropic's AI coding assistant). This fork primarily changes the architecture from SDK-based to CLI-based implementation, with almost all implementation work done by Claude Code.
 
 <div align="center">
 
@@ -24,7 +26,7 @@ Launch, monitor, and interact with multiple Claude Code sessions directly from T
 
 ### Fork Source
 
-This project is a fork of [alizarion/openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin), originally created by **Betrue**.
+This project is a fork of [alizarion/openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin), created by **alizarion**.
 
 ### Key Difference: CLI-based Architecture
 
@@ -43,9 +45,16 @@ This project is a fork of [alizarion/openclaw-claude-code-plugin](https://github
 ### Why This Approach?
 
 ✅ **Model Flexibility**: Use any Claude-compatible service without modifying plugin code
+
 ✅ **Configuration**: Use existing `claude` CLI config (`~/.claude/config.json`) for API endpoints
+
 ✅ **Updates**: Benefit from Claude Code CLI updates automatically
+
 ✅ **No SDK Dependency**: Eliminates compatibility issues with SDK versions
+
+### 🙏 Acknowledgments
+
+**Huge thanks to [@alizarion](https://github.com/alizarion)** for creating the original [openclaw-claude-code-plugin](https://github.com/alizarion/openclaw-claude-code-plugin) project. This fork is built upon the excellent foundation and architecture of the original project.
 
 ### Installation
 
