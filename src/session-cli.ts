@@ -50,6 +50,9 @@ export class Session {
   startedAt: number;
   completedAt?: number;
 
+  // Activity tracking for auto-routing
+  lastActivityAt: number = Date.now();
+
   // Output
   outputBuffer: string[] = [];
 
@@ -86,6 +89,11 @@ export class Session {
   // Flags
   budgetExhausted: boolean = false;
   private waitingForInputFired: boolean = false;
+
+  /** True if session is waiting for user input (after end-of-turn) */
+  get isWaitingForInput(): boolean {
+    return this.status === 'running' && this.waitingForInputFired;
+  }
 
   // Auto-respond safety cap: tracks consecutive agent-initiated responds
   autoRespondCount: number = 0;
@@ -280,6 +288,8 @@ export class Session {
    * Handle a single message from the CLI
    */
   private handleMessage(msg: any): void {
+    // Update activity timestamp for auto-routing
+    this.lastActivityAt = Date.now();
     // Reset the safety-net timer on every incoming message
     this.resetSafetyNetTimer();
 
@@ -454,6 +464,7 @@ export class Session {
       throw new Error('Process stdin not available');
     }
 
+    this.lastActivityAt = Date.now();
     this.resetIdleTimer();
     this.waitingForInputFired = false;
 

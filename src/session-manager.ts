@@ -595,6 +595,38 @@ export class SessionManager {
     return this.sessions.get(id);
   }
 
+  /**
+   * Find the most recently active running session for a given channel.
+   * Priority: sessions waiting for input > other running sessions
+   */
+  findMostRecentSessionForChannel(channelId: string): Session | null {
+    const running = this.list("running");
+
+    const matching = running.filter(s =>
+      s.originChannel === channelId ||
+      s.foregroundChannels.has(channelId)
+    );
+
+    if (matching.length === 0) return null;
+
+    return matching.sort((a, b) => {
+      const aScore = a.lastActivityAt + (a.isWaitingForInput ? 100000 : 0);
+      const bScore = b.lastActivityAt + (b.isWaitingForInput ? 100000 : 0);
+      return bScore - aScore;
+    })[0];
+  }
+
+  /**
+   * Check if channel has any running sessions.
+   */
+  hasRunningSessionForChannel(channelId: string): boolean {
+    const running = this.list("running");
+    return running.some(s =>
+      s.originChannel === channelId ||
+      s.foregroundChannels.has(channelId)
+    );
+  }
+
   list(filter?: SessionStatus | "all"): Session[] {
     let result = [...this.sessions.values()];
     if (filter && filter !== "all") {
