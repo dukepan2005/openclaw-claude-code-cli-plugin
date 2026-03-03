@@ -354,17 +354,35 @@ openclaw gateway restart
 
 ---
 
-## 📚 更多文档
+## 📚 文档导航
 
-| 文档 | 描述 |
-|------|------|
-| **[docs/USER_GUIDE_CN.md](docs/USER_GUIDE_CN.md)** | 用户使用指南（中文） |
-| [docs/TOOLS_REFERENCE_CN.md](docs/TOOLS_REFERENCE_CN.md) | 工具、命令和 RPC 方法（中文） |
-| [docs/PRELAUNCH_GUARDS_CN.md](docs/PRELAUNCH_GUARDS_CN.md) | 预启动安全检查和故障排除（中文） |
-| **[docs/MESSAGE_ROUTING_CN.md](docs/MESSAGE_ROUTING_CN.md)** | 消息路由机制：频道解析、通知层级、唤醒机制（中文） |
-| **[docs/AGENT_CHANNELS_CN.md](docs/AGENT_CHANNELS_CN.md)** | 多代理设置和频道配置（中文） |
-| [docs/ARCHITECTURE_CN.md](docs/ARCHITECTURE_CN.md) | 架构概览（中文） |
-| [docs/DEVELOPMENT_CN.md](docs/DEVELOPMENT_CN.md) | 开发指南（中文） |
+### 普通用户
+
+**从这里开始 →** [USER_GUIDE_CN.md](docs/USER_GUIDE_CN.md) — 完整用户指南，包含快速入门、命令详解和故障排除
+
+| 优先级 | 文档 | 描述 |
+|:------:|------|------|
+| 1️⃣ | [USER_GUIDE_CN.md](docs/USER_GUIDE_CN.md) | 用户使用指南和首次启动流程 |
+| 2️⃣ | [TOOLS_REFERENCE_CN.md](docs/TOOLS_REFERENCE_CN.md) | 所有工具、命令和 RPC 方法参考 |
+| 3️⃣ | [PRELAUNCH_GUARDS_CN.md](docs/PRELAUNCH_GUARDS_CN.md) | 预启动安全检查和故障排除 |
+
+### 多代理配置
+
+**从这里开始 →** [AGENT_CHANNELS_CN.md](docs/AGENT_CHANNELS_CN.md) — 配置工作区到频道的映射
+
+| 优先级 | 文档 | 描述 |
+|:------:|------|------|
+| 4️⃣ | [AGENT_CHANNELS_CN.md](docs/AGENT_CHANNELS_CN.md) | 多代理设置、通知路由、工作区映射 |
+| 5️⃣ | [MESSAGE_ROUTING_CN.md](docs/MESSAGE_ROUTING_CN.md) | 消息路由：频道解析、通知层级、唤醒机制 |
+
+### 开发者
+
+**从这里开始 →** [ARCHITECTURE_CN.md](docs/ARCHITECTURE_CN.md) — 理解插件架构
+
+| 优先级 | 文档 | 描述 |
+|:------:|------|------|
+| 6️⃣ | [ARCHITECTURE_CN.md](docs/ARCHITECTURE_CN.md) | 架构概览和组件分解 |
+| 7️⃣ | [DEVELOPMENT_CN.md](docs/DEVELOPMENT_CN.md) | 开发指南、项目结构、构建说明 |
 
 ---
 

@@ -311,17 +311,35 @@ npm install -g @anthropic-ai/claude-code
 
 ---
 
-## 📚 More Documentation
+## 📚 Documentation Guide
 
-| Document | Description |
-|----------|-------------|
-| **[docs/USER_GUIDE_EN.md](docs/USER_GUIDE_EN.md)** | User guide and first-launch walkthrough |
-| [docs/TOOLS_REFERENCE.md](docs/TOOLS_REFERENCE.md) | Tools, commands, and RPC methods |
-| [docs/PRELAUNCH_GUARDS.md](docs/PRELAUNCH_GUARDS.md) | Pre-launch safety checks and troubleshooting |
-| [docs/MESSAGE_ROUTING.md](docs/MESSAGE_ROUTING.md) | Message routing: channel resolution, notification levels, wake mechanism |
-| [docs/AGENT_CHANNELS.md](docs/AGENT_CHANNELS.md) | Multi-agent setup, notification routing, and workspace mapping |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture overview and component breakdown |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guide, project structure, and build instructions |
+### For Users
+
+**Start here →** [USER_GUIDE_EN.md](docs/USER_GUIDE_EN.md) — Complete user guide with quick start, commands, and troubleshooting
+
+| Priority | Document | Description |
+|:--------:|----------|-------------|
+| 1️⃣ | [USER_GUIDE_EN.md](docs/USER_GUIDE_EN.md) | User guide and first-launch walkthrough |
+| 2️⃣ | [TOOLS_REFERENCE.md](docs/TOOLS_REFERENCE.md) | All tools, commands, and RPC methods reference |
+| 3️⃣ | [PRELAUNCH_GUARDS.md](docs/PRELAUNCH_GUARDS.md) | Pre-launch safety checks and troubleshooting |
+
+### For Multi-Agent Setup
+
+**Start here →** [AGENT_CHANNELS.md](docs/AGENT_CHANNELS.md) — Configure workspace-to-channel mappings
+
+| Priority | Document | Description |
+|:--------:|----------|-------------|
+| 4️⃣ | [AGENT_CHANNELS.md](docs/AGENT_CHANNELS.md) | Multi-agent setup, notification routing, workspace mapping |
+| 5️⃣ | [MESSAGE_ROUTING.md](docs/MESSAGE_ROUTING.md) | Message routing: channel resolution, notification levels, wake mechanism |
+
+### For Developers
+
+**Start here →** [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Understand the plugin architecture
+
+| Priority | Document | Description |
+|:--------:|----------|-------------|
+| 6️⃣ | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture overview and component breakdown |
+| 7️⃣ | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guide, project structure, build instructions |
 
 ---
 
