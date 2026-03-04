@@ -192,20 +192,21 @@ export class Session {
       }
 
       // Spawn the CLI process
-      this.process = spawn('claude', args, {
+      // Note: do NOT pass `encoding` here — SpawnOptions does not support it.
+      // stdout/stderr data is received as Buffers and converted to utf-8 in the handlers.
+      const proc = spawn('claude', args, {
         cwd: this.workdir,
         env: process.env,  // Use parent environment (includes Claude Code CLI config)
-        // Use buffer mode to handle binary data if needed
-        encoding: 'buffer',
       });
+      this.process = proc;
 
       // Setup stdout handler for parsing output
-      this.process.stdout?.on('data', (data: Buffer) => {
+      proc.stdout.on('data', (data: Buffer) => {
         this.parseOutput(data.toString('utf-8'));
       });
 
       // Setup stderr handler (for debugging and error capture)
-      this.process.stderr?.on('data', (data: Buffer) => {
+      proc.stderr.on('data', (data: Buffer) => {
         const stderrText = data.toString('utf-8');
         console.error(`[Session ${this.id} stderr]:`, stderrText);
         // Buffer stderr for error reporting
@@ -216,7 +217,7 @@ export class Session {
       });
 
       // Handle process exit
-      this.process.on('exit', (code: number | null) => {
+      proc.on('exit', (code: number | null) => {
         if (this.status === 'starting' || this.status === 'running') {
           this.status = code === 0 ? 'completed' : 'failed';
           this.completedAt = Date.now();
@@ -236,7 +237,7 @@ export class Session {
       });
 
       // Handle process errors
-      this.process.on('error', (err: Error) => {
+      proc.on('error', (err: Error) => {
         console.error(`[Session ${this.id} process error]:`, err);
         if (this.status === 'starting' || this.status === 'running') {
           this.status = 'failed';
