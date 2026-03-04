@@ -139,10 +139,25 @@ claude_bg()
 ```
 # Reply to a Claude question
 claude_respond(session: "add-dark-mode", message: "Yes, use CSS variables for the theme colors.")
-
-# Redirect a running session (interrupts the current turn)
-claude_respond(session: "add-dark-mode", message: "Stop. Use Tailwind dark: classes instead of CSS variables.", interrupt: true)
 ```
+
+### Stop and redirect a session
+
+When a session is going in the wrong direction, use **kill + resume**:
+
+```
+# 1. Kill the session
+claude_kill(session: "add-dark-mode")
+
+# 2. Resume with new direction
+claude_launch(
+  prompt: "Use Tailwind dark: classes instead of CSS variables.",
+  resume_session_id: "add-dark-mode",
+  multi_turn: true
+)
+```
+
+> **Note:** The `interrupt: true` parameter on `claude_respond` terminates the session via SIGINT. The message is NOT delivered. Use `claude_kill` + `claude_launch(resume_session_id: ...)` instead.
 
 ### When to auto-respond vs forward to the user
 
@@ -294,5 +309,6 @@ When a session completes:
 | `claude_fg` | Foreground + live stream | `session` |
 | `claude_bg` | Switch back to background | `session` |
 | `claude_kill` | Kill a session | `session` |
-| `claude_respond` | Send a follow-up | `session`, `message`, `interrupt` |
+| `claude_respond` | Send a follow-up | `session`, `message` |
+| `claude_kill` + `claude_launch(resume_session_id)` | Stop & redirect | — |
 | `claude_stats` | Usage metrics | none |
