@@ -582,6 +582,17 @@ export class SessionManager {
   }
 
   /**
+   * Find the most recent persisted session for a channel.
+   * Used by /claude_resume to auto-resume the last session in the current channel.
+   */
+  findMostRecentPersistedSessionForChannel(channelId: string): PersistedSessionInfo | null {
+    const all = this.listPersistedSessions();
+    const matching = all.filter(s => s.originChannel === channelId);
+    if (matching.length === 0) return null;
+    return matching[0]; // Already sorted by completedAt desc
+  }
+
+  /**
    * Resolve a session by ID or name.
    */
   resolve(idOrName: string): Session | undefined {

@@ -233,7 +233,13 @@ add-upload [xyz789]
 /claude_resume --list
 ```
 
-**恢复并继续：**
+**恢复当前频道最近的会话：**
+```
+/claude_resume                    # 使用默认 prompt 恢复
+/claude_resume 添加测试            # 使用新 prompt 恢复
+```
+
+**恢复指定会话：**
 ```
 /claude_resume <会话名称> <新任务>
 ```
@@ -249,6 +255,8 @@ add-upload [xyz789]
 ```
 /claude_resume --fork fix-auth 尝试完全不同的方案
 ```
+
+> **注意：** 如果第一个词不匹配已保存的会话名称，整个消息会被当作最近会话的 prompt。
 
 ---
 

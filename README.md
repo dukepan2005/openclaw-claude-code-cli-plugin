@@ -182,8 +182,12 @@ In Telegram, send:
 
 ```bash
 /claude_kill fix-auth                           # Terminate session
-/claude_resume fix-auth Continue optimizing     # Resume session
-/claude_resume --fork fix-auth Try alternative   # Fork session
+/claude_kill                                    # Kill current channel's session
+/claude_kill -a                                 # Kill all sessions
+/claude_resume                                  # Resume most recent session in channel
+/claude_resume Add tests                        # Resume recent session with prompt
+/claude_resume fix-auth Continue optimizing     # Resume specific session
+/claude_resume --fork fix-auth Try alternative  # Fork session
 ```
 
 ---
@@ -255,9 +259,10 @@ Set values in `~/.openclaw/openclaw.json` under `plugins.entries["openclaw-claud
 | `/claude_bg` | Send current foreground session to background |
 | `/claude_watch <name>` | Subscribe to session's real-time output (no catchup) |
 | `/claude_unwatch <name>` | Unsubscribe from session's real-time output |
-| `/claude_kill <name>` | Terminate a running session |
+| `/claude_kill [name]` | Terminate session (no arg: current channel's session; -a: all) |
 | `/claude_output <name>` | Read buffered output from a session |
-| `/claude_resume <name>` | Resume a previous session or fork to new conversation |
+| `/claude_resume [prompt]` | Resume most recent session in channel |
+| `/claude_resume <name> [prompt]` | Resume specific session or fork to new conversation |
 | `/claude_stats` | Show usage metrics (counts, durations, costs) |
 
 All commands are **chat commands** that work in Telegram, Discord, and other OpenClaw-supported channels.

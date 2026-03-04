@@ -186,9 +186,13 @@ openclaw gateway restart
 ### 会话生命周期
 
 ```bash
-/claude_kill fix-auth                   # 终止会话
-/claude_resume fix-auth 继续优化         # 恢复会话
-/claude_resume --fork fix-auth 尝试不同方案  # Fork 会话
+/claude_kill fix-auth                           # 终止会话
+/claude_kill                                    # 终止当前频道的会话
+/claude_kill -a                                 # 终止所有会话
+/claude_resume                                  # 恢复频道最近的会话
+/claude_resume 添加测试                          # 恢复最近会话并指定 prompt
+/claude_resume fix-auth 继续优化                 # 恢复指定会话
+/claude_resume --fork fix-auth 尝试不同方案       # Fork 会话
 ```
 
 ---
@@ -260,9 +264,10 @@ openclaw gateway restart
 | `/claude_bg` | 将当前前台会话发送到后台 |
 | `/claude_watch <名称>` | 订阅会话的实时输出（无追赶） |
 | `/claude_unwatch <名称>` | 取消订阅会话的实时输出 |
-| `/claude_kill <名称>` | 终止运行中的会话 |
+| `/claude_kill [名称]` | 终止会话（无参数：当前频道会话；-a：所有会话） |
 | `/claude_output <名称>` | 读取会话的缓冲输出 |
-| `/claude_resume <名称>` | 恢复之前的会话或分支到新对话 |
+| `/claude_resume [prompt]` | 恢复频道最近的会话 |
+| `/claude_resume <名称> [prompt]` | 恢复指定会话或分支到新对话 |
 | `/claude_stats` | 显示使用指标（次数、时长、成本） |
 
 所有命令都是可在 Telegram、Discord 和其他 OpenClaw 支持的频道中使用的**聊天命令**。

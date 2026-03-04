@@ -233,7 +233,13 @@ add-upload [xyz789]
 /claude_resume --list
 ```
 
-**Resume and continue:**
+**Resume most recent session in current channel:**
+```
+/claude_resume                    # Resume with default prompt
+/claude_resume Add tests          # Resume with new prompt
+```
+
+**Resume specific session:**
 ```
 /claude_resume <session name> <new task>
 ```
@@ -249,6 +255,8 @@ add-upload [xyz789]
 ```
 /claude_resume --fork fix-auth Try completely different approach
 ```
+
+> **Note:** If the first word doesn't match a persisted session name, the entire message is treated as a prompt for the most recent session.
 
 ---
 
