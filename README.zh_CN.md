@@ -122,12 +122,12 @@ openclaw gateway restart
 在 Telegram 中发送：
 
 ```
-/claude -name hello-world 创建一个 hello world 程序
+/claude --name hello-world 创建一个 hello world 程序
 ```
 
-> **⚠️ 重要提示**：`-name` 参数是**必需的**，用于启动新会话。
-> - 不带 `-name`：向最近的活动会话发送消息
-> - 带 `-name`：创建指定名称的新会话
+> **⚠️ 重要提示**：`--name`（或 `-n`）参数是**必需的**，用于启动新会话。
+> - 不带 `--name`：向最近的活动会话发送消息
+> - 带 `--name`：创建指定名称的新会话
 
 ---
 
@@ -148,7 +148,7 @@ openclaw gateway restart
 ### 启动会话
 
 ```bash
-/claude -name fix-auth 修复认证问题
+/claude --name fix-auth 修复认证问题
 ```
 
 ### 查看会话
@@ -170,14 +170,10 @@ openclaw gateway restart
 # 中断并重定向
 /claude_respond --interrupt fix-auth 停下！用另一个方案
 
-# 快速中断（发送 ESC 停止当前响应）
-/claude_esc                    # 中断最近的会话
-/c_esc fix-auth                # 中断指定会话
 ```
 
 > **提示**：
-> - 不带 `-name` 的 `/claude <消息>` 会发送到当前频道最近的活动会话
-> - `/claude_esc` 或 `/c_esc` 发送 ESC 来中断 Claude 的响应
+> - 不带 `--name` 的 `/claude <消息>` 会发送到当前频道最近的活动会话
 > - 使用 `/claude_respond <名称> <消息>` 可以指定特定会话
 
 ### 实时监控
@@ -190,9 +186,13 @@ openclaw gateway restart
 ### 会话生命周期
 
 ```bash
-/claude_kill fix-auth                   # 终止会话
-/claude_resume fix-auth 继续优化         # 恢复会话
-/claude_resume --fork fix-auth 尝试不同方案  # Fork 会话
+/claude_kill fix-auth                           # 终止会话
+/claude_kill                                    # 终止当前频道的会话
+/claude_kill -a                                 # 终止所有会话
+/claude_resume                                  # 恢复频道最近的会话
+/claude_resume 添加测试                          # 恢复最近会话并指定 prompt
+/claude_resume fix-auth 继续优化                 # 恢复指定会话
+/claude_resume --fork fix-auth 尝试不同方案       # Fork 会话
 ```
 
 ---
@@ -264,12 +264,11 @@ openclaw gateway restart
 | `/claude_bg` | 将当前前台会话发送到后台 |
 | `/claude_watch <名称>` | 订阅会话的实时输出（无追赶） |
 | `/claude_unwatch <名称>` | 取消订阅会话的实时输出 |
-| `/claude_kill <名称>` | 终止运行中的会话 |
+| `/claude_kill [名称]` | 终止会话（无参数：当前频道会话；-a：所有会话） |
 | `/claude_output <名称>` | 读取会话的缓冲输出 |
-| `/claude_resume <名称>` | 恢复之前的会话或分支到新对话 |
+| `/claude_resume [prompt]` | 恢复频道最近的会话 |
+| `/claude_resume <名称> [prompt]` | 恢复指定会话或分支到新对话 |
 | `/claude_stats` | 显示使用指标（次数、时长、成本） |
-| `/claude_esc` | 发送 ESC 中断当前的 Claude 响应 |
-| `/c_esc <名称>` | 发送 ESC 中断指定会话（简写） |
 
 所有命令都是可在 Telegram、Discord 和其他 OpenClaw 支持的频道中使用的**聊天命令**。
 

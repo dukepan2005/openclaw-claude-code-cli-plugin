@@ -44,6 +44,12 @@ export class Session {
   private safetyNetTimer?: ReturnType<typeof setTimeout>;
   private static readonly SAFETY_NET_IDLE_MS = 15_000;
 
+  // Startup timeout: fires if no init message arrives within 60s after spawn.
+  // Guards against CLI hangs (auth dialogs, network issues, PATH errors that
+  // bypass spawn error events, etc.).
+  private startupTimer?: ReturnType<typeof setTimeout>;
+  private static readonly STARTUP_TIMEOUT_MS = 60_000;
+
   // State
   status: SessionStatus = 'starting';
   error?: string;
@@ -104,6 +110,13 @@ export class Session {
   onBudgetExhausted?: (session: Session) => void;
   onComplete?: (session: Session) => void;
   onWaitingForInput?: (session: Session) => void;
+  /**
+   * Fired when the idle timer expires (multi-turn session received no follow-up
+   * within idleTimeoutMinutes). SessionManager subscribes to this and calls
+   * SessionManager.kill(id) so the full lifecycle path runs (persistence,
+   * metrics, notifications).
+   */
+  onIdleTimeout?: (session: Session) => void;
 
   // Idle timer for multi-turn sessions
   private idleTimer?: ReturnType<typeof setTimeout>;
@@ -134,6 +147,7 @@ export class Session {
         this.error = `Working directory does not exist: ${this.workdir}`;
         this.completedAt = Date.now();
         console.error(`[Session ${this.id}] ${this.error}`);
+        this.onComplete?.(this);
         return;
       }
       if (!statSync(this.workdir).isDirectory()) {
@@ -141,6 +155,7 @@ export class Session {
         this.error = `Working directory is not a directory: ${this.workdir}`;
         this.completedAt = Date.now();
         console.error(`[Session ${this.id}] ${this.error}`);
+        this.onComplete?.(this);
         return;
       }
       // Warn if workdir is root (likely a misconfiguration)
@@ -177,20 +192,21 @@ export class Session {
       }
 
       // Spawn the CLI process
-      this.process = spawn('claude', args, {
+      // Note: do NOT pass `encoding` here — SpawnOptions does not support it.
+      // stdout/stderr data is received as Buffers and converted to utf-8 in the handlers.
+      const proc = spawn('claude', args, {
         cwd: this.workdir,
         env: process.env,  // Use parent environment (includes Claude Code CLI config)
-        // Use buffer mode to handle binary data if needed
-        encoding: 'buffer',
       });
+      this.process = proc;
 
       // Setup stdout handler for parsing output
-      this.process.stdout?.on('data', (data: Buffer) => {
+      proc.stdout.on('data', (data: Buffer) => {
         this.parseOutput(data.toString('utf-8'));
       });
 
       // Setup stderr handler (for debugging and error capture)
-      this.process.stderr?.on('data', (data: Buffer) => {
+      proc.stderr.on('data', (data: Buffer) => {
         const stderrText = data.toString('utf-8');
         console.error(`[Session ${this.id} stderr]:`, stderrText);
         // Buffer stderr for error reporting
@@ -201,11 +217,12 @@ export class Session {
       });
 
       // Handle process exit
-      this.process.on('exit', (code: number | null) => {
+      proc.on('exit', (code: number | null) => {
         if (this.status === 'starting' || this.status === 'running') {
           this.status = code === 0 ? 'completed' : 'failed';
           this.completedAt = Date.now();
           this.clearSafetyNetTimer();
+          if (this.startupTimer) { clearTimeout(this.startupTimer); this.startupTimer = undefined; }
           if (this.idleTimer) clearTimeout(this.idleTimer);
 
           // Capture stderr as error message if process failed
@@ -220,27 +237,55 @@ export class Session {
       });
 
       // Handle process errors
-      this.process.on('error', (err: Error) => {
+      proc.on('error', (err: Error) => {
         console.error(`[Session ${this.id} process error]:`, err);
-        this.status = 'failed';
-        // Provide more helpful error message for common cases
-        if (err.message.includes('ENOENT')) {
-          this.error = `claude CLI not found. Please ensure Claude Code CLI is installed and in PATH.`;
-        } else {
-          this.error = err.message;
+        if (this.status === 'starting' || this.status === 'running') {
+          this.status = 'failed';
+          // Provide more helpful error message for common cases
+          if (err.message.includes('ENOENT')) {
+            this.error = `claude CLI not found. Please ensure Claude Code CLI is installed and in PATH.`;
+          } else {
+            this.error = err.message;
+          }
+          this.completedAt = Date.now();
+          this.clearSafetyNetTimer();
+          if (this.idleTimer) clearTimeout(this.idleTimer);
+          this.onComplete?.(this);
         }
-        this.completedAt = Date.now();
       });
 
-      // Send initial prompt via stdin for multi-turn sessions
-      if (this.multiTurn) {
-        this.sendInitialPrompt();
+      // Always send initial prompt via stdin (required by --input-format stream-json)
+      this.sendInitialPrompt();
+
+      // For single-turn sessions, close stdin immediately after sending the prompt.
+      // This signals the CLI that no further input is coming, so it can execute
+      // and exit cleanly instead of hanging forever waiting for more stdin data.
+      if (!this.multiTurn && this.process?.stdin) {
+        this.process.stdin.end();
       }
+
+      // Start the startup timeout timer — cancelled when the init message arrives.
+      // If the CLI never sends an init event (auth hang, network issue, etc.),
+      // we kill the session and notify the user.
+      this.startupTimer = setTimeout(() => {
+        this.startupTimer = undefined;
+        if (this.status === 'starting') {
+          console.error(`[Session ${this.id}] Startup timeout (${Session.STARTUP_TIMEOUT_MS / 1000}s): no init message received — killing`);
+          this.status = 'failed';
+          this.error = `Session startup timed out after ${Session.STARTUP_TIMEOUT_MS / 1000}s. The claude CLI may be hanging (check auth, network, or PATH).`;
+          this.completedAt = Date.now();
+          if (this.process && !this.process.killed) {
+            this.process.kill('SIGKILL');
+          }
+          this.onComplete?.(this);
+        }
+      }, Session.STARTUP_TIMEOUT_MS);
 
     } catch (err: any) {
       this.status = 'failed';
       this.error = err?.message ?? String(err);
       this.completedAt = Date.now();
+      this.onComplete?.(this);
     }
   }
 
@@ -296,6 +341,11 @@ export class Session {
     if (msg.type === 'system' && msg.subtype === 'init') {
       this.claudeSessionId = msg.session_id;
       this.status = 'running';
+      // Cancel the startup timeout — CLI is alive and running
+      if (this.startupTimer) {
+        clearTimeout(this.startupTimer);
+        this.startupTimer = undefined;
+      }
       this.resetIdleTimer();
     }
     else if (msg.type === 'assistant') {
@@ -429,33 +479,56 @@ export class Session {
     const idleTimeoutMs = (pluginConfig.idleTimeoutMinutes ?? 30) * 60 * 1000;
     this.idleTimer = setTimeout(() => {
       if (this.status === 'running') {
-        console.log(`[Session] ${this.id} idle timeout reached (${pluginConfig.idleTimeoutMinutes ?? 30}min), auto-killing`);
-        this.kill();
+        console.log(`[Session] ${this.id} idle timeout reached (${pluginConfig.idleTimeoutMinutes ?? 30}min), firing onIdleTimeout`);
+        if (this.onIdleTimeout) {
+          // Delegate to SessionManager.kill() so persistence/metrics/notifications run
+          this.onIdleTimeout(this);
+        } else {
+          // Fallback: direct kill (no SessionManager wired)
+          this.kill();
+        }
       }
     }, idleTimeoutMs);
   }
 
   /**
-   * Interrupt the current response by sending ESC character.
-   * This mimics pressing the ESC key in interactive Claude Code.
+   * Interrupt the current response by sending SIGINT to the claude process.
+   *
+   * NOTE: ESC (\x1B) written to a pipe stdin does NOT work here. In interactive
+   * mode, ESC is handled by the terminal (TTY) + readline/Ink keyboard layer.
+   * When spawned with child_process.spawn(), stdin is a plain pipe (isTTY=false),
+   * so writing ESC bytes has no effect — they are invalid JSON and ignored by the
+   * stream-json parser.
+   *
+   * SIGINT is the correct mechanism: it interrupts the in-flight API call at the
+   * process level (same as Ctrl+C in a terminal), and Claude Code CLI is designed
+   * to handle SIGINT gracefully in --print mode by aborting the current turn.
+   * In multi-turn mode the session stays open for follow-up messages.
    */
   async interrupt(): Promise<void> {
-    if (this.status !== 'running' || !this.process?.stdin) {
+    if (this.status !== 'running' || !this.process) {
       return;
     }
 
-    console.log(`[Session] ${this.id} sending ESC (\\x1B) to interrupt current turn`);
+    console.log(`[Session] ${this.id} sending SIGINT to interrupt current turn`);
 
-    // Send ESC character (ASCII 27, \x1B)
-    this.process.stdin.write('\x1B');
+    // SIGINT interrupts the in-flight API call — equivalent to Ctrl+C in terminal.
+    // Claude Code CLI handles this gracefully and stops the current generation.
+    this.process.kill('SIGINT');
 
-    // Wait a bit for the interrupt to take effect
-    await new Promise(resolve => setTimeout(resolve, 150));
+    // Wait a bit for the interrupt to take effect before the caller sends new input
+    await new Promise(resolve => setTimeout(resolve, 300));
   }
 
   /**
    * Send a follow-up message to a running multi-turn session.
    * Writes to the process stdin in stream-json format.
+   *
+   * NOTE on interrupt=true: SIGINT terminates the CLI process, so the session
+   * will transition to 'failed' asynchronously after this call. The message
+   * written here will NOT be delivered — the process is dead or dying.
+   * Callers should NOT use interrupt=true to "interrupt then redirect"; instead,
+   * call interrupt() separately and then use /claude_resume with a new prompt.
    */
   async sendMessage(text: string, interrupt: boolean = false): Promise<void> {
     if (this.status !== 'running') {
@@ -466,14 +539,17 @@ export class Session {
       throw new Error('Process stdin not available');
     }
 
+    // If interrupt is requested, send SIGINT and stop here.
+    // SIGINT kills the process — writing to stdin afterwards would throw "write after end".
+    // The caller should use /claude_resume to continue with a new prompt.
+    if (interrupt) {
+      await this.interrupt();
+      return;  // Do NOT attempt to write to stdin after SIGINT
+    }
+
     this.lastActivityAt = Date.now();
     this.resetIdleTimer();
     this.waitingForInputFired = false;
-
-    // If interrupt is requested, send ESC first
-    if (interrupt) {
-      await this.interrupt();
-    }
 
     // Construct stream-json format user message
     const userMsg = {
@@ -503,16 +579,17 @@ export class Session {
 
     if (this.idleTimer) clearTimeout(this.idleTimer);
     this.clearSafetyNetTimer();
+    if (this.startupTimer) { clearTimeout(this.startupTimer); this.startupTimer = undefined; }
     this.status = 'killed';
     this.completedAt = Date.now();
 
     if (this.process) {
-      // Try graceful shutdown with Ctrl+C first
-      if (this.process.stdin) {
-        this.process.stdin.write('\x03');  // Ctrl+C
-      }
+      // Send SIGINT first for graceful shutdown (allows Claude CLI to flush state).
+      // NOTE: writing '\x03' to a pipe stdin does NOT work (same as '\x1B') —
+      // Ctrl+C is a TTY driver feature, not a byte value. Use the real signal.
+      this.process.kill('SIGINT');
 
-      // Force kill after 2 seconds if not dead
+      // Force kill after 2 seconds if process doesn't exit on its own
       const killTimer = setTimeout(() => {
         if (this.process && !this.process.killed) {
           console.log(`[Session] ${this.id} force killing after timeout`);

@@ -3,7 +3,7 @@ import { sessionManager, pluginConfig, resolveOriginChannel } from "../shared";
 export function registerClaudeCommand(api: any): void {
   api.registerCommand({
     name: "claude",
-    description: "Launch a Claude Code session or respond to active session. Usage: /claude [-name <name>] [-workdir <path>] <prompt>",
+    description: "Launch a Claude Code session or respond to active session. Usage: /claude [--name|-n <name>] [--workdir|-C <path>] <prompt>",
     acceptsArgs: true,
     requireAuth: true,
     handler: async (ctx: any) => {
@@ -15,8 +15,8 @@ export function registerClaudeCommand(api: any): void {
 
       let args = (ctx.args ?? "").trim();
 
-      // Parse optional -name flag (single dash for Telegram compatibility)
-      const hasNameFlag = args.match(/^-name\s+(\S+)\s+/);
+      // Parse optional --name / -n flag
+      const hasNameFlag = args.match(/^(?:--name|-n)\s+(\S+)\s+/);
 
       if (!hasNameFlag) {
         // === MODE 1: Respond to active session ===
@@ -25,16 +25,16 @@ export function registerClaudeCommand(api: any): void {
 
         if (!session) {
           if (!args) {
-            return { text: "No active session. Use `/claude -name <name> <prompt>` to start one." };
+            return { text: "No active session. Use `/claude --name <name> <prompt>` to start one." };
           }
           // If user provided args but no --name, they probably wanted to start a session
-          // but forgot the -name flag. Give helpful error.
+          // but forgot the --name flag. Give helpful error.
           return {
             text: [
               "No active session in this channel.",
               "",
               "To respond to a session: use `/claude <message>` when a session is running.",
-              "To start a new session: use `/claude -name <name> <prompt>`",
+              "To start a new session: use `/claude --name <name> <prompt>`",
             ].join("\n"),
           };
         }
@@ -63,7 +63,7 @@ export function registerClaudeCommand(api: any): void {
 
       // === MODE 2: Launch new session ===
       if (!args) {
-        return { text: "Usage: /claude -name <name> [-workdir <path>] <prompt>" };
+        return { text: "Usage: /claude --name <name> [--workdir <path>] <prompt>" };
       }
 
       // Check for existing running session in this channel
@@ -83,15 +83,15 @@ export function registerClaudeCommand(api: any): void {
       }
 
       let name: string | undefined;
-      const nameMatch = args.match(/^-name\s+(\S+)\s+/);
+      const nameMatch = args.match(/^(?:--name|-n)\s+(\S+)\s+/);
       if (nameMatch) {
         name = nameMatch[1];
         args = args.slice(nameMatch[0].length).trim();
       }
 
-      // Parse optional -workdir flag (supports quoted paths with spaces)
+      // Parse optional --workdir / -C flag (supports quoted paths with spaces)
       let workdir: string | undefined;
-      const workdirMatch = args.match(/^-workdir\s+(?:"([^"]+)"|'([^']+)'|(\S+))\s*/);
+      const workdirMatch = args.match(/^(?:--workdir|-C)\s+(?:"([^"]+)"|'([^']+)'|(\S+))\s*/);
       if (workdirMatch) {
         workdir = workdirMatch[1] || workdirMatch[2] || workdirMatch[3];
         args = args.slice(workdirMatch[0].length).trim();
@@ -99,7 +99,7 @@ export function registerClaudeCommand(api: any): void {
 
       const prompt = args;
       if (!prompt) {
-        return { text: "Usage: /claude -name <name> [-workdir <path>] <prompt>" };
+        return { text: "Usage: /claude --name <name> [--workdir <path>] <prompt>" };
       }
 
       try {

@@ -118,12 +118,12 @@ Edit `~/.openclaw/openclaw.json`:
 
 In Telegram, send:
 ```
-/claude -name hello-world Create a hello world program
+/claude --name hello-world Create a hello world program
 ```
 
-> **⚠️ Important**: The `-name` parameter is **required** to launch a new session.
-> - Without `-name`: Sends message to the most recent active session
-> - With `-name`: Creates a new session with the specified name
+> **⚠️ Important**: The `--name` (or `-n`) parameter is **required** to launch a new session.
+> - Without `--name`: Sends message to the most recent active session
+> - With `--name`: Creates a new session with the specified name
 
 ---
 
@@ -143,7 +143,7 @@ In Telegram, send:
 ### Launch Session
 
 ```bash
-/claude -name fix-auth Fix authentication issue
+/claude --name fix-auth Fix authentication issue
 ```
 
 ### View Sessions
@@ -165,14 +165,10 @@ In Telegram, send:
 # Interrupt and redirect
 /claude_respond --interrupt fix-auth Stop! Try different approach
 
-# Quick interrupt (sends ESC to stop current response)
-/claude_esc                    # Interrupt most recent session
-/c_esc fix-auth                # Interrupt specific session
 ```
 
 > **Note**:
 > - `/claude <message>` without `-name` sends to the most recent active session in the current channel
-> - `/claude_esc` or `/c_esc` sends ESC to interrupt Claude mid-response
 > - Use `/claude_respond <name> <message>` to target a specific session
 
 ### Real-time Monitoring
@@ -186,8 +182,12 @@ In Telegram, send:
 
 ```bash
 /claude_kill fix-auth                           # Terminate session
-/claude_resume fix-auth Continue optimizing     # Resume session
-/claude_resume --fork fix-auth Try alternative   # Fork session
+/claude_kill                                    # Kill current channel's session
+/claude_kill -a                                 # Kill all sessions
+/claude_resume                                  # Resume most recent session in channel
+/claude_resume Add tests                        # Resume recent session with prompt
+/claude_resume fix-auth Continue optimizing     # Resume specific session
+/claude_resume --fork fix-auth Try alternative  # Fork session
 ```
 
 ---
@@ -250,7 +250,7 @@ Set values in `~/.openclaw/openclaw.json` under `plugins.entries["openclaw-claud
 
 | Command | Description |
 |---------|-------------|
-| `/claude -name <name> <prompt>` | Start a new Claude Code session |
+| `/claude --name <name> <prompt>` | Start a new Claude Code session |
 | `/claude <message>` | Send message to most recent active session in current channel |
 | `/claude_sessions` | List all sessions with status and duration |
 | `/claude_respond <name> <message>` | Send follow-up message to a specific session |
@@ -259,12 +259,11 @@ Set values in `~/.openclaw/openclaw.json` under `plugins.entries["openclaw-claud
 | `/claude_bg` | Send current foreground session to background |
 | `/claude_watch <name>` | Subscribe to session's real-time output (no catchup) |
 | `/claude_unwatch <name>` | Unsubscribe from session's real-time output |
-| `/claude_kill <name>` | Terminate a running session |
+| `/claude_kill [name]` | Terminate session (no arg: current channel's session; -a: all) |
 | `/claude_output <name>` | Read buffered output from a session |
-| `/claude_resume <name>` | Resume a previous session or fork to new conversation |
+| `/claude_resume [prompt]` | Resume most recent session in channel |
+| `/claude_resume <name> [prompt]` | Resume specific session or fork to new conversation |
 | `/claude_stats` | Show usage metrics (counts, durations, costs) |
-| `/claude_esc` | Send ESC to interrupt current Claude response |
-| `/c_esc <name>` | Send ESC to interrupt specific session (short alias) |
 
 All commands are **chat commands** that work in Telegram, Discord, and other OpenClaw-supported channels.
 

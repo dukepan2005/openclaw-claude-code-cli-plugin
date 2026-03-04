@@ -4,7 +4,7 @@ export function registerClaudeRespondCommand(api: any): void {
   api.registerCommand({
     name: "claude_respond",
     description:
-      "Send a follow-up message to a running Claude Code session. Usage: /claude_respond <id-or-name> <message>",
+      "Send a follow-up message to a running Claude Code session. Usage: /claude_respond <id-or-name> <message> | --interrupt <id-or-name> to stop session (then resume)",
     acceptsArgs: true,
     requireAuth: true,
     handler: async (ctx: any) => {
@@ -17,7 +17,7 @@ export function registerClaudeRespondCommand(api: any): void {
       const args = (ctx.args ?? "").trim();
       if (!args) {
         return {
-          text: "Usage: /claude_respond <id-or-name> <message>\n       /claude_respond --interrupt <id-or-name> <message>",
+          text: "Usage: /claude_respond <id-or-name> <message>\n       /claude_respond --interrupt <id-or-name> — stop session (then use /claude_resume to continue)",
         };
       }
 
@@ -59,8 +59,20 @@ export function registerClaudeRespondCommand(api: any): void {
 
       try {
         if (interrupt) {
+          // SIGINT kills the CLI process — we cannot write to stdin afterwards.
+          // Interrupt first, then instruct the user to resume with their message.
           await session.interrupt();
+          const resumeHint = `/claude_resume ${ref} ${message}`;
+          return {
+            text: [
+              `⏹️ Interrupted session ${session.name} [${session.id}].`,
+              ``,
+              `The session has been stopped (SIGINT). To continue with your message, run:`,
+              resumeHint,
+            ].join("\n"),
+          };
         }
+
         await session.sendMessage(message);
 
         // Reset auto-respond counter (user-initiated)

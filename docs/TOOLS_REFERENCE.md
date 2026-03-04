@@ -181,7 +181,9 @@ claude_bg()
 
 ## claude_kill
 
-Terminate a running Claude Code session. Cannot kill sessions that are already in a terminal state (`completed`, `failed`, `killed`).
+Terminate a running Claude Code session. Sends SIGINT for graceful shutdown. Cannot kill sessions that are already in a terminal state (`completed`, `failed`, `killed`).
+
+After killing, the session can be resumed using `claude_launch` with `resume_session_id`.
 
 ### Parameters
 
@@ -192,7 +194,15 @@ Terminate a running Claude Code session. Cannot kill sessions that are already i
 ### Example
 
 ```
+# Kill a session
 claude_kill(session: "fix-auth-bug")
+
+# Resume with new direction
+claude_launch(
+  prompt: "Use a different approach: implement with middleware",
+  resume_session_id: "fix-auth-bug",
+  multi_turn: true
+)
 ```
 
 ---

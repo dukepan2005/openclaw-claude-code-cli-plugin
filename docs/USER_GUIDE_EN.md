@@ -218,6 +218,12 @@ add-upload [xyz789]
 /claude_kill abc123
 ```
 
+> **💡 Kill + Resume Workflow**: When a session is going in the wrong direction and `--interrupt` isn't enough, you can:
+> 1. `/claude_kill <name>` — Terminate the current session
+> 2. `/claude_resume <name> <new direction>` — Resume with different instructions
+>
+> This is useful when you want to completely restart with a fresh approach while keeping the session history.
+
 ---
 
 ### 8. `/claude_resume` - Resume Completed Session
@@ -227,7 +233,13 @@ add-upload [xyz789]
 /claude_resume --list
 ```
 
-**Resume and continue:**
+**Resume most recent session in current channel:**
+```
+/claude_resume                    # Resume with default prompt
+/claude_resume Add tests          # Resume with new prompt
+```
+
+**Resume specific session:**
 ```
 /claude_resume <session name> <new task>
 ```
@@ -243,6 +255,8 @@ add-upload [xyz789]
 ```
 /claude_resume --fork fix-auth Try completely different approach
 ```
+
+> **Note:** If the first word doesn't match a persisted session name, the entire message is treated as a prompt for the most recent session.
 
 ---
 

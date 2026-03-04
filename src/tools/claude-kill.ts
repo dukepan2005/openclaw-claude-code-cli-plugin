@@ -5,7 +5,7 @@ import type { OpenClawPluginToolContext } from "../types";
 export function makeClaudeKillTool(_ctx?: OpenClawPluginToolContext) {
   return {
     name: "claude_kill",
-    description: "Terminate a running Claude Code session by name or ID.",
+    description: "Terminate a running Claude Code session by name or ID. Sends SIGINT for graceful shutdown. The session can be resumed afterwards using claude_launch with resume_session_id.",
     parameters: Type.Object({
       session: Type.String({ description: "Session name or ID to terminate" }),
     }),

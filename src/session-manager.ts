@@ -171,6 +171,11 @@ export class SessionManager {
         // Auto-trigger OpenClaw agent to process the completed session
         this.triggerAgentEvent(session);
       };
+
+      session.onIdleTimeout = (s: Session) => {
+        console.log(`[SessionManager] session.onIdleTimeout fired for session=${s.id} (${s.name}), running full kill path`);
+        this.kill(s.id);
+      };
     } else {
       console.warn(`[SessionManager] No NotificationRouter available when spawning session=${session.id} (${session.name})`);
     }
@@ -574,6 +579,17 @@ export class SessionManager {
       }
     }
     return result.sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
+  }
+
+  /**
+   * Find the most recent persisted session for a channel.
+   * Used by /claude_resume to auto-resume the last session in the current channel.
+   */
+  findMostRecentPersistedSessionForChannel(channelId: string): PersistedSessionInfo | null {
+    const all = this.listPersistedSessions();
+    const matching = all.filter(s => s.originChannel === channelId);
+    if (matching.length === 0) return null;
+    return matching[0]; // Already sorted by completedAt desc
   }
 
   /**

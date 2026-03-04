@@ -23,7 +23,7 @@ This is an OpenClaw plugin that orchestrates Claude Code sessions as managed bac
 
 ### Core Components
 
-- **`index.ts`** - Plugin entry point. Registers 8 tools, 10 commands, 5 gateway RPC methods, and 1 service. Creates SessionManager and NotificationRouter during service start.
+- **`index.ts`** - Plugin entry point. Registers 8 tools, 9 commands, 5 gateway RPC methods, and 1 service. Creates SessionManager and NotificationRouter during service start.
 
 - **`src/session-cli.ts`** - Wraps a single Claude Code session using the Claude Code CLI via `child_process.spawn()`. Handles output buffering, foreground streaming, multi-turn conversations via `--input-format stream-json`, and waiting-for-input detection with a 15s safety-net timer. Uses `stream-json` output format for event parsing.
 
@@ -51,7 +51,7 @@ api.registerTool((ctx: OpenClawPluginToolContext) => makeClaudeLaunchTool(ctx));
 Context contains: `agentId`, `workspaceDir`, `messageChannel`, `agentAccountId`, `sandboxed`, `sessionKey`.
 
 ### Multi-Turn Sessions
-Multi-turn sessions use `--input-format stream-json` to enable continuous stdin communication. Messages are written as JSON objects to the CLI's stdin. End-of-turn is detected when the CLI returns a `result` event with `subtype: "success"` — the session stays in "running" status for follow-up messages. Interrupts are sent via ESC character (`\x1B`).
+Multi-turn sessions use `--input-format stream-json` to enable continuous stdin communication. Messages are written as JSON objects to the CLI's stdin. End-of-turn is detected when the CLI returns a `result` event with `subtype: "success"` — the session stays in "running" status for follow-up messages. To interrupt, use SIGINT (`process.kill('SIGINT')`) which terminates the CLI; resume with `/claude_resume`.
 
 ### Waiting for Input Detection (Dual Mechanism)
 1. **Primary**: End-of-turn detection in multi-turn mode (when `result.subtype === "success"`)
