@@ -3,7 +3,7 @@ import { sessionManager, resolveOriginChannel } from "../shared";
 export function registerClaudeKillCommand(api: any): void {
   api.registerCommand({
     name: "claude_kill",
-    description: "Kill Claude Code session(s). Usage: /claude_kill [name-or-id] | -all (kill all sessions)",
+    description: "Kill Claude Code session(s). Usage: /claude_kill [name-or-id] | -a (kill all sessions)",
     acceptsArgs: true,
     requireAuth: true,
     handler: (ctx: any) => {
@@ -15,8 +15,8 @@ export function registerClaudeKillCommand(api: any): void {
 
       const args = ctx.args?.trim() || "";
 
-      // Handle -all flag to kill all sessions
-      if (args === "-all" || args === "--all") {
+      // Handle -a / --all flag to kill all sessions
+      if (args === "-a" || args === "--all") {
         const running = sessionManager.list("running");
         if (running.length === 0) {
           return { text: "No running sessions to kill." };
