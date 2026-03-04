@@ -181,7 +181,9 @@ claude_bg()
 
 ## claude_kill
 
-终止运行中的 Claude Code 会话。无法杀死已处于终止状态的会话（`completed`、`failed`、`killed`）。
+终止运行中的 Claude Code 会话。发送 SIGINT 进行优雅关闭。无法杀死已处于终止状态的会话（`completed`、`failed`、`killed`）。
+
+终止后，可以使用 `claude_launch` 配合 `resume_session_id` 恢复会话。
 
 ### 参数
 
@@ -192,7 +194,15 @@ claude_bg()
 ### 示例
 
 ```
+# 终止会话
 claude_kill(session: "fix-auth-bug")
+
+# 用新方向恢复
+claude_launch(
+  prompt: "使用不同的方案：用中间件实现",
+  resume_session_id: "fix-auth-bug",
+  multi_turn: true
+)
 ```
 
 ---

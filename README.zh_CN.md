@@ -122,12 +122,12 @@ openclaw gateway restart
 在 Telegram 中发送：
 
 ```
-/claude -name hello-world 创建一个 hello world 程序
+/claude --name hello-world 创建一个 hello world 程序
 ```
 
-> **⚠️ 重要提示**：`-name` 参数是**必需的**，用于启动新会话。
-> - 不带 `-name`：向最近的活动会话发送消息
-> - 带 `-name`：创建指定名称的新会话
+> **⚠️ 重要提示**：`--name`（或 `-n`）参数是**必需的**，用于启动新会话。
+> - 不带 `--name`：向最近的活动会话发送消息
+> - 带 `--name`：创建指定名称的新会话
 
 ---
 
@@ -148,7 +148,7 @@ openclaw gateway restart
 ### 启动会话
 
 ```bash
-/claude -name fix-auth 修复认证问题
+/claude --name fix-auth 修复认证问题
 ```
 
 ### 查看会话
@@ -173,7 +173,7 @@ openclaw gateway restart
 ```
 
 > **提示**：
-> - 不带 `-name` 的 `/claude <消息>` 会发送到当前频道最近的活动会话
+> - 不带 `--name` 的 `/claude <消息>` 会发送到当前频道最近的活动会话
 > - 使用 `/claude_respond <名称> <消息>` 可以指定特定会话
 
 ### 实时监控

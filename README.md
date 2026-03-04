@@ -118,12 +118,12 @@ Edit `~/.openclaw/openclaw.json`:
 
 In Telegram, send:
 ```
-/claude -name hello-world Create a hello world program
+/claude --name hello-world Create a hello world program
 ```
 
-> **⚠️ Important**: The `-name` parameter is **required** to launch a new session.
-> - Without `-name`: Sends message to the most recent active session
-> - With `-name`: Creates a new session with the specified name
+> **⚠️ Important**: The `--name` (or `-n`) parameter is **required** to launch a new session.
+> - Without `--name`: Sends message to the most recent active session
+> - With `--name`: Creates a new session with the specified name
 
 ---
 
@@ -143,7 +143,7 @@ In Telegram, send:
 ### Launch Session
 
 ```bash
-/claude -name fix-auth Fix authentication issue
+/claude --name fix-auth Fix authentication issue
 ```
 
 ### View Sessions
@@ -246,7 +246,7 @@ Set values in `~/.openclaw/openclaw.json` under `plugins.entries["openclaw-claud
 
 | Command | Description |
 |---------|-------------|
-| `/claude -name <name> <prompt>` | Start a new Claude Code session |
+| `/claude --name <name> <prompt>` | Start a new Claude Code session |
 | `/claude <message>` | Send message to most recent active session in current channel |
 | `/claude_sessions` | List all sessions with status and duration |
 | `/claude_respond <name> <message>` | Send follow-up message to a specific session |
