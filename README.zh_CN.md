@@ -28,23 +28,12 @@
 
 ### 核心差异：基于 CLI 的架构
 
-**原项目 (@alizarion/openclaw-claude-code-plugin)**
-
-- 使用 `@anthropic-ai/claude-agent-sdk` npm 包
-- SDK 嵌入在插件内部
-- 仅支持 Anthropic 官方 Claude API
-
-**本项目 (@dukepan2005/openclaw-claude-code-cli-plugin)**
-
 - **通过 `child_process.spawn` 启动 Claude Code CLI 子进程**
 - 通过 stdin/stdout 以 stream-json 格式与 CLI 通信
-- **兼容任何 Claude 协议的模型服务**（Anthropic API、OpenRouter、自定义端点等）
 
 ### 为什么选择这种方式？
 
-✅ **模型灵活性**：无需修改插件代码即可使用任何兼容 Claude 的服务
-
-✅ **配置复用**：直接使用 `claude` CLI 的现有配置（`~/.claude/config.json`）
+✅ **专为编码构建**：Claude Code CLI 专门为编码任务优化 — 内置深度代码理解、文件操作、测试和重构功能
 
 ✅ **自动更新**：自动受益于 Claude Code CLI 的更新
 

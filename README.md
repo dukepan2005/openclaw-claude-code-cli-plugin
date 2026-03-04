@@ -30,23 +30,12 @@ This project is a fork of [alizarion/openclaw-claude-code-plugin](https://github
 
 ### Key Difference: CLI-based Architecture
 
-**Original Project (@alizarion/openclaw-claude-code-plugin)**
-
-- Uses `@anthropic-ai/claude-agent-sdk` (npm package)
-- Embeds the SDK directly in the plugin
-- Limited to Anthropic's official Claude API
-
-**This Fork (@dukepan2005/openclaw-claude-code-cli-plugin)**
-
 - **Spawns Claude Code CLI as a child process** using `child_process.spawn`
 - Communicates with CLI via stream-json format over stdin/stdout
-- **Works with any Claude-compatible model service** (Anthropic API, OpenRouter, custom endpoints, etc.)
 
 ### Why This Approach?
 
-✅ **Model Flexibility**: Use any Claude-compatible service without modifying plugin code
-
-✅ **Configuration**: Use existing `claude` CLI config (`~/.claude/config.json`) for API endpoints
+✅ **Built for Coding**: Claude Code CLI is specifically optimized for coding tasks — with deep code understanding, file operations, testing, and refactoring built-in
 
 ✅ **Updates**: Benefit from Claude Code CLI updates automatically
 
