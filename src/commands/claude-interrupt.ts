@@ -3,10 +3,16 @@ import { sessionManager, resolveOriginChannel } from "../shared";
 /**
  * /claude_esc [name-or-id] or /c_esc [name-or-id]
  *
- * Interrupt the current Claude Code response by sending ESC character.
- * If no argument provided, defaults to the last active session in the current channel.
+ * Interrupt the current Claude Code response by sending SIGINT to the CLI process.
  *
- * This is useful when you want to stop Claude mid-response and provide new instructions.
+ * NOTE: Unlike interactive Claude Code where pressing ESC just pauses the current
+ * generation while keeping the session alive, this command sends SIGINT which
+ * terminates the CLI process. The session will move to 'failed' status, and you
+ * can resume it with /claude_resume.
+ *
+ * Background: ESC (\x1B) written to a pipe (non-TTY) stdin has no effect — it is
+ * treated as invalid JSON by the stream-json parser. SIGINT is the correct signal
+ * to abort the in-flight API call at the process level.
  */
 export function registerClaudeInterruptCommand(api: any): void {
   const handler = async (ctx: any) => {
@@ -50,7 +56,12 @@ export function registerClaudeInterruptCommand(api: any): void {
     try {
       await session.interrupt();
       return {
-        text: `⏹️ Interrupted ${session.name} [${session.id}]\n\nUse /claude <message> to send new instructions.`,
+        text: [
+          `⏹️ Interrupted ${session.name} [${session.id}]`,
+          ``,
+          `The session has been stopped (SIGINT). Current turn is cancelled.`,
+          `Use /claude_resume ${session.name} <message> to continue from where it left off.`,
+        ].join("\n"),
       };
     } catch (err: any) {
       return { text: `Error: ${err.message}` };

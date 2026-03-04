@@ -492,21 +492,32 @@ export class Session {
   }
 
   /**
-   * Interrupt the current response by sending ESC character.
-   * This mimics pressing the ESC key in interactive Claude Code.
+   * Interrupt the current response by sending SIGINT to the claude process.
+   *
+   * NOTE: ESC (\x1B) written to a pipe stdin does NOT work here. In interactive
+   * mode, ESC is handled by the terminal (TTY) + readline/Ink keyboard layer.
+   * When spawned with child_process.spawn(), stdin is a plain pipe (isTTY=false),
+   * so writing ESC bytes has no effect — they are invalid JSON and ignored by the
+   * stream-json parser.
+   *
+   * SIGINT is the correct mechanism: it interrupts the in-flight API call at the
+   * process level (same as Ctrl+C in a terminal), and Claude Code CLI is designed
+   * to handle SIGINT gracefully in --print mode by aborting the current turn.
+   * In multi-turn mode the session stays open for follow-up messages.
    */
   async interrupt(): Promise<void> {
-    if (this.status !== 'running' || !this.process?.stdin) {
+    if (this.status !== 'running' || !this.process) {
       return;
     }
 
-    console.log(`[Session] ${this.id} sending ESC (\\x1B) to interrupt current turn`);
+    console.log(`[Session] ${this.id} sending SIGINT to interrupt current turn`);
 
-    // Send ESC character (ASCII 27, \x1B)
-    this.process.stdin.write('\x1B');
+    // SIGINT interrupts the in-flight API call — equivalent to Ctrl+C in terminal.
+    // Claude Code CLI handles this gracefully and stops the current generation.
+    this.process.kill('SIGINT');
 
-    // Wait a bit for the interrupt to take effect
-    await new Promise(resolve => setTimeout(resolve, 150));
+    // Wait a bit for the interrupt to take effect before the caller sends new input
+    await new Promise(resolve => setTimeout(resolve, 300));
   }
 
   /**
