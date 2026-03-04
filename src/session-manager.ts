@@ -171,6 +171,11 @@ export class SessionManager {
         // Auto-trigger OpenClaw agent to process the completed session
         this.triggerAgentEvent(session);
       };
+
+      session.onIdleTimeout = (s: Session) => {
+        console.log(`[SessionManager] session.onIdleTimeout fired for session=${s.id} (${s.name}), running full kill path`);
+        this.kill(s.id);
+      };
     } else {
       console.warn(`[SessionManager] No NotificationRouter available when spawning session=${session.id} (${session.name})`);
     }

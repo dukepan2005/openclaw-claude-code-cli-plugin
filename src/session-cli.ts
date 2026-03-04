@@ -44,6 +44,12 @@ export class Session {
   private safetyNetTimer?: ReturnType<typeof setTimeout>;
   private static readonly SAFETY_NET_IDLE_MS = 15_000;
 
+  // Startup timeout: fires if no init message arrives within 60s after spawn.
+  // Guards against CLI hangs (auth dialogs, network issues, PATH errors that
+  // bypass spawn error events, etc.).
+  private startupTimer?: ReturnType<typeof setTimeout>;
+  private static readonly STARTUP_TIMEOUT_MS = 60_000;
+
   // State
   status: SessionStatus = 'starting';
   error?: string;
@@ -104,6 +110,13 @@ export class Session {
   onBudgetExhausted?: (session: Session) => void;
   onComplete?: (session: Session) => void;
   onWaitingForInput?: (session: Session) => void;
+  /**
+   * Fired when the idle timer expires (multi-turn session received no follow-up
+   * within idleTimeoutMinutes). SessionManager subscribes to this and calls
+   * SessionManager.kill(id) so the full lifecycle path runs (persistence,
+   * metrics, notifications).
+   */
+  onIdleTimeout?: (session: Session) => void;
 
   // Idle timer for multi-turn sessions
   private idleTimer?: ReturnType<typeof setTimeout>;
@@ -134,6 +147,7 @@ export class Session {
         this.error = `Working directory does not exist: ${this.workdir}`;
         this.completedAt = Date.now();
         console.error(`[Session ${this.id}] ${this.error}`);
+        this.onComplete?.(this);
         return;
       }
       if (!statSync(this.workdir).isDirectory()) {
@@ -141,6 +155,7 @@ export class Session {
         this.error = `Working directory is not a directory: ${this.workdir}`;
         this.completedAt = Date.now();
         console.error(`[Session ${this.id}] ${this.error}`);
+        this.onComplete?.(this);
         return;
       }
       // Warn if workdir is root (likely a misconfiguration)
@@ -206,6 +221,7 @@ export class Session {
           this.status = code === 0 ? 'completed' : 'failed';
           this.completedAt = Date.now();
           this.clearSafetyNetTimer();
+          if (this.startupTimer) { clearTimeout(this.startupTimer); this.startupTimer = undefined; }
           if (this.idleTimer) clearTimeout(this.idleTimer);
 
           // Capture stderr as error message if process failed
@@ -222,25 +238,53 @@ export class Session {
       // Handle process errors
       this.process.on('error', (err: Error) => {
         console.error(`[Session ${this.id} process error]:`, err);
-        this.status = 'failed';
-        // Provide more helpful error message for common cases
-        if (err.message.includes('ENOENT')) {
-          this.error = `claude CLI not found. Please ensure Claude Code CLI is installed and in PATH.`;
-        } else {
-          this.error = err.message;
+        if (this.status === 'starting' || this.status === 'running') {
+          this.status = 'failed';
+          // Provide more helpful error message for common cases
+          if (err.message.includes('ENOENT')) {
+            this.error = `claude CLI not found. Please ensure Claude Code CLI is installed and in PATH.`;
+          } else {
+            this.error = err.message;
+          }
+          this.completedAt = Date.now();
+          this.clearSafetyNetTimer();
+          if (this.idleTimer) clearTimeout(this.idleTimer);
+          this.onComplete?.(this);
         }
-        this.completedAt = Date.now();
       });
 
-      // Send initial prompt via stdin for multi-turn sessions
-      if (this.multiTurn) {
-        this.sendInitialPrompt();
+      // Always send initial prompt via stdin (required by --input-format stream-json)
+      this.sendInitialPrompt();
+
+      // For single-turn sessions, close stdin immediately after sending the prompt.
+      // This signals the CLI that no further input is coming, so it can execute
+      // and exit cleanly instead of hanging forever waiting for more stdin data.
+      if (!this.multiTurn && this.process?.stdin) {
+        this.process.stdin.end();
       }
+
+      // Start the startup timeout timer — cancelled when the init message arrives.
+      // If the CLI never sends an init event (auth hang, network issue, etc.),
+      // we kill the session and notify the user.
+      this.startupTimer = setTimeout(() => {
+        this.startupTimer = undefined;
+        if (this.status === 'starting') {
+          console.error(`[Session ${this.id}] Startup timeout (${Session.STARTUP_TIMEOUT_MS / 1000}s): no init message received — killing`);
+          this.status = 'failed';
+          this.error = `Session startup timed out after ${Session.STARTUP_TIMEOUT_MS / 1000}s. The claude CLI may be hanging (check auth, network, or PATH).`;
+          this.completedAt = Date.now();
+          if (this.process && !this.process.killed) {
+            this.process.kill('SIGKILL');
+          }
+          this.onComplete?.(this);
+        }
+      }, Session.STARTUP_TIMEOUT_MS);
 
     } catch (err: any) {
       this.status = 'failed';
       this.error = err?.message ?? String(err);
       this.completedAt = Date.now();
+      this.onComplete?.(this);
     }
   }
 
@@ -296,6 +340,11 @@ export class Session {
     if (msg.type === 'system' && msg.subtype === 'init') {
       this.claudeSessionId = msg.session_id;
       this.status = 'running';
+      // Cancel the startup timeout — CLI is alive and running
+      if (this.startupTimer) {
+        clearTimeout(this.startupTimer);
+        this.startupTimer = undefined;
+      }
       this.resetIdleTimer();
     }
     else if (msg.type === 'assistant') {
@@ -429,8 +478,14 @@ export class Session {
     const idleTimeoutMs = (pluginConfig.idleTimeoutMinutes ?? 30) * 60 * 1000;
     this.idleTimer = setTimeout(() => {
       if (this.status === 'running') {
-        console.log(`[Session] ${this.id} idle timeout reached (${pluginConfig.idleTimeoutMinutes ?? 30}min), auto-killing`);
-        this.kill();
+        console.log(`[Session] ${this.id} idle timeout reached (${pluginConfig.idleTimeoutMinutes ?? 30}min), firing onIdleTimeout`);
+        if (this.onIdleTimeout) {
+          // Delegate to SessionManager.kill() so persistence/metrics/notifications run
+          this.onIdleTimeout(this);
+        } else {
+          // Fallback: direct kill (no SessionManager wired)
+          this.kill();
+        }
       }
     }, idleTimeoutMs);
   }
@@ -503,6 +558,7 @@ export class Session {
 
     if (this.idleTimer) clearTimeout(this.idleTimer);
     this.clearSafetyNetTimer();
+    if (this.startupTimer) { clearTimeout(this.startupTimer); this.startupTimer = undefined; }
     this.status = 'killed';
     this.completedAt = Date.now();
 
