@@ -170,14 +170,10 @@ openclaw gateway restart
 # 中断并重定向
 /claude_respond --interrupt fix-auth 停下！用另一个方案
 
-# 快速中断（发送 ESC 停止当前响应）
-/claude_esc                    # 中断最近的会话
-/c_esc fix-auth                # 中断指定会话
 ```
 
 > **提示**：
 > - 不带 `-name` 的 `/claude <消息>` 会发送到当前频道最近的活动会话
-> - `/claude_esc` 或 `/c_esc` 发送 ESC 来中断 Claude 的响应
 > - 使用 `/claude_respond <名称> <消息>` 可以指定特定会话
 
 ### 实时监控
@@ -268,8 +264,6 @@ openclaw gateway restart
 | `/claude_output <名称>` | 读取会话的缓冲输出 |
 | `/claude_resume <名称>` | 恢复之前的会话或分支到新对话 |
 | `/claude_stats` | 显示使用指标（次数、时长、成本） |
-| `/claude_esc` | 发送 ESC 中断当前的 Claude 响应 |
-| `/c_esc <名称>` | 发送 ESC 中断指定会话（简写） |
 
 所有命令都是可在 Telegram、Discord 和其他 OpenClaw 支持的频道中使用的**聊天命令**。
 

@@ -218,6 +218,12 @@ add-upload [xyz789]
 /claude_kill abc123
 ```
 
+> **💡 Kill + Resume Workflow**: When a session is going in the wrong direction and `--interrupt` isn't enough, you can:
+> 1. `/claude_kill <name>` — Terminate the current session
+> 2. `/claude_resume <name> <new direction>` — Resume with different instructions
+>
+> This is useful when you want to completely restart with a fresh approach while keeping the session history.
+
 ---
 
 ### 8. `/claude_resume` - Resume Completed Session

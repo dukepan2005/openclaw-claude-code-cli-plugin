@@ -218,6 +218,12 @@ add-upload [xyz789]
 /claude_kill abc123
 ```
 
+> **💡 Kill + Resume 工作流**：当会话方向错误且 `--interrupt` 不够用时，你可以：
+> 1. `/claude_kill <名称>` — 终止当前会话
+> 2. `/claude_resume <名称> <新方向>` — 用不同的指令恢复
+>
+> 这在你想完全重新开始、同时保留会话历史时非常有用。
+
 ---
 
 ### 8. `/claude_resume` - 恢复已完成的会话

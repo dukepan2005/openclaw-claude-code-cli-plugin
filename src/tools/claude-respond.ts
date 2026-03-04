@@ -35,7 +35,7 @@ export function makeClaudeRespondTool(ctx?: OpenClawPluginToolContext) {
       interrupt: Type.Optional(
         Type.Boolean({
           description:
-            "If true, interrupt the current turn before sending the message. Useful to redirect the session mid-response.",
+            "If true, send SIGINT to terminate the session before sending the message. NOTE: SIGINT kills the CLI process — the message will NOT be delivered to the current session. You will receive a resumeSessionId to use with claude_launch to continue. Do NOT use this to redirect a session mid-response; use it only when you want to stop the session entirely.",
         }),
       ),
       userInitiated: Type.Optional(
@@ -101,7 +101,24 @@ export function makeClaudeRespondTool(ctx?: OpenClawPluginToolContext) {
       try {
         // Optionally interrupt the current turn
         if (params.interrupt) {
+          // SIGINT kills the CLI process — cannot write to stdin afterwards.
+          // Interrupt and return instructions to resume with the intended message.
           await session.interrupt();
+          const claudeSessionId = session.claudeSessionId ?? 'unknown';
+          return {
+            content: [
+              {
+                type: 'text',
+                text: [
+                  `Session ${session.name} [${session.id}] interrupted (SIGINT).`,
+                  `The session has stopped. To continue with the intended message, call claude_launch`,
+                  `with resumeSessionId='${claudeSessionId}' and prompt='${params.message}'.`,
+                  `Or wait for the session status to become 'failed', then use claude_respond with`,
+                  `the same session ref after resuming.`,
+                ].join('\n'),
+              },
+            ],
+          };
         }
 
         // Send the message

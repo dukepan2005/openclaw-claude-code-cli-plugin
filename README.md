@@ -165,14 +165,10 @@ In Telegram, send:
 # Interrupt and redirect
 /claude_respond --interrupt fix-auth Stop! Try different approach
 
-# Quick interrupt (sends ESC to stop current response)
-/claude_esc                    # Interrupt most recent session
-/c_esc fix-auth                # Interrupt specific session
 ```
 
 > **Note**:
 > - `/claude <message>` without `-name` sends to the most recent active session in the current channel
-> - `/claude_esc` or `/c_esc` sends ESC to interrupt Claude mid-response
 > - Use `/claude_respond <name> <message>` to target a specific session
 
 ### Real-time Monitoring
@@ -263,8 +259,6 @@ Set values in `~/.openclaw/openclaw.json` under `plugins.entries["openclaw-claud
 | `/claude_output <name>` | Read buffered output from a session |
 | `/claude_resume <name>` | Resume a previous session or fork to new conversation |
 | `/claude_stats` | Show usage metrics (counts, durations, costs) |
-| `/claude_esc` | Send ESC to interrupt current Claude response |
-| `/c_esc <name>` | Send ESC to interrupt specific session (short alias) |
 
 All commands are **chat commands** that work in Telegram, Discord, and other OpenClaw-supported channels.
 

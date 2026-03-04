@@ -523,6 +523,12 @@ export class Session {
   /**
    * Send a follow-up message to a running multi-turn session.
    * Writes to the process stdin in stream-json format.
+   *
+   * NOTE on interrupt=true: SIGINT terminates the CLI process, so the session
+   * will transition to 'failed' asynchronously after this call. The message
+   * written here will NOT be delivered — the process is dead or dying.
+   * Callers should NOT use interrupt=true to "interrupt then redirect"; instead,
+   * call interrupt() separately and then use /claude_resume with a new prompt.
    */
   async sendMessage(text: string, interrupt: boolean = false): Promise<void> {
     if (this.status !== 'running') {
@@ -533,14 +539,17 @@ export class Session {
       throw new Error('Process stdin not available');
     }
 
+    // If interrupt is requested, send SIGINT and stop here.
+    // SIGINT kills the process — writing to stdin afterwards would throw "write after end".
+    // The caller should use /claude_resume to continue with a new prompt.
+    if (interrupt) {
+      await this.interrupt();
+      return;  // Do NOT attempt to write to stdin after SIGINT
+    }
+
     this.lastActivityAt = Date.now();
     this.resetIdleTimer();
     this.waitingForInputFired = false;
-
-    // If interrupt is requested, send ESC first
-    if (interrupt) {
-      await this.interrupt();
-    }
 
     // Construct stream-json format user message
     const userMsg = {
@@ -575,12 +584,12 @@ export class Session {
     this.completedAt = Date.now();
 
     if (this.process) {
-      // Try graceful shutdown with Ctrl+C first
-      if (this.process.stdin) {
-        this.process.stdin.write('\x03');  // Ctrl+C
-      }
+      // Send SIGINT first for graceful shutdown (allows Claude CLI to flush state).
+      // NOTE: writing '\x03' to a pipe stdin does NOT work (same as '\x1B') —
+      // Ctrl+C is a TTY driver feature, not a byte value. Use the real signal.
+      this.process.kill('SIGINT');
 
-      // Force kill after 2 seconds if not dead
+      // Force kill after 2 seconds if process doesn't exit on its own
       const killTimer = setTimeout(() => {
         if (this.process && !this.process.killed) {
           console.log(`[Session] ${this.id} force killing after timeout`);
