@@ -1,7 +1,7 @@
 import type { Session } from "./session-cli";
 import type { SessionManager, SessionMetrics } from "./session-manager";
 import type { NotificationRouter } from "./notifications";
-import type { PluginConfig } from "./types";
+import type { PluginConfig, OpenClawPluginToolContext } from "./types";
 
 export let sessionManager: SessionManager | null = null;
 export let notificationRouter: NotificationRouter | null = null;
@@ -197,6 +197,46 @@ export function resolveAgentChannel(workdir: string): string | undefined {
       return channel;
     }
   }
+  return undefined;
+}
+
+/**
+ * Resolve tool notification channel from factory context.
+ * Used by tools to determine where notifications should be sent.
+ *
+ * Priority:
+ *   1. messageChannel + agentAccountId (inject account into channel)
+ *   2. agentChannels config lookup via workspaceDir
+ *   3. messageChannel as-is (if already contains "|")
+ *   4. undefined (no routing info available)
+ *
+ * Example usage in a tool:
+ *   const channel = resolveToolContextChannel(ctx);
+ *   if (channel) await notificationRouter.notify(channel, ...);
+ */
+export function resolveToolContextChannel(ctx?: OpenClawPluginToolContext): string | undefined {
+  if (!ctx) return undefined;
+
+  // Priority 1: ctx.messageChannel + ctx.agentAccountId
+  if (ctx.messageChannel && ctx.agentAccountId) {
+    const parts = ctx.messageChannel.split("|");
+    if (parts.length >= 2) {
+      // Inject agentAccountId as second segment
+      return `${parts[0]}|${ctx.agentAccountId}|${parts.slice(1).join("|")}`;
+    }
+  }
+
+  // Priority 2: Lookup via workspaceDir in agentChannels config
+  if (ctx.workspaceDir) {
+    const resolved = resolveAgentChannel(ctx.workspaceDir);
+    if (resolved) return resolved;
+  }
+
+  // Priority 3: Use messageChannel as-is if it already has segments
+  if (ctx.messageChannel && ctx.messageChannel.includes("|")) {
+    return ctx.messageChannel;
+  }
+
   return undefined;
 }
 
